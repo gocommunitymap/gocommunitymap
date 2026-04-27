@@ -1,0 +1,182 @@
+import zIndex from '@mui/material/styles/zIndex'
+import base_axios from 'axios'
+import { toast } from 'react-hot-toast'
+import { decUserData } from 'src/@core/utils'
+
+const toastProps = { duration: 5000 }
+
+export const axios = base_axios.create({
+  baseURL: `${process.env.NEXT_PUBLIC_BASEURL}`
+})
+
+export const getRequest = (
+  url,
+  { data = {}, config = { useBaseURL: true, isGuest: false, errorMessage: null, errorToast: true } } = {}
+) => {
+  if (config.useBaseURL) {
+    if (!config.isGuest) {
+      let userData = []
+
+      try {
+        userData = JSON.parse(decUserData(window.localStorage.getItem('userData')))
+      } catch (error) {}
+
+      const token = `Bearer ${userData?.token}`
+      axios.defaults.headers.common['Authorization'] = token
+    }
+
+    return axios({
+      method: 'get',
+      url,
+      params: data,
+      config,
+      headers: { 'Access-Control-Allow-Origin': '*' }
+    })
+      .then(response => {
+        if (response?.data) {
+          return response
+        } else {
+          toast.error(response.error)
+
+          return []
+        }
+      })
+      .catch(error => {
+        if (config.errorToast) {
+          if (config.errorMessage !== null) {
+            toast.error(config.errorMessage)
+          } else {
+            alert('11')
+            toast.error(error.message)
+          }
+        }
+      })
+  } else {
+    return base_axios(url, {
+      method: 'get',
+      data
+    })
+      .then(response => {
+        if (!response?.data[0]?.ERROR) {
+          return response
+        } else {
+          toast.error(response?.data[0]?.ERROR)
+
+          return []
+        }
+      })
+      .catch(error => {
+        toast.error(error.message)
+
+        return false
+      })
+  }
+}
+
+export const postRequest = (
+  url,
+  { data = {}, params = {}, config = { toast: true, isGuest: false }, customMessage = null } = {}
+) => {
+  if (!config.isGuest) {
+    const userData = JSON.parse(decUserData(window.localStorage.getItem('userData')))
+    const token = `Bearer ${userData.token}`
+    axios.defaults.headers.common['Authorization'] = token
+  }
+
+  return axios({
+    method: 'post',
+    url,
+    data,
+    params
+
+    // headers: { Authorization: `Bearer ${userData.token}` }
+  })
+    .then(response => {
+      if (!response?.data[0]?.ERROR) {
+        if (config.toast) {
+          if (customMessage !== null) {
+            toast.success(customMessage, { duration: 5000 })
+          } else {
+            const m = response.data[0].MESSAGE
+            const c = response.data[0].CODE
+            toast.success(`${m} WITH CODE: ${c}`, toastProps)
+          }
+        }
+      } else {
+        toast.error(response?.data[0]?.ERROR, toastProps, { style: { zIndex: '10000 !importent' } })
+
+        return false
+      }
+
+      return response
+    })
+    .catch(error => {
+      alert('12')
+      toast.error(error.message, toastProps)
+
+      return false
+    })
+}
+
+export const deleteRequest = (url, { data = {}, config = { toast: true } } = {}) => {
+  const userData = JSON.parse(decUserData(window.localStorage.getItem('userData')))
+
+  const token = `Bearer ${userData.token}`
+  axios.defaults.headers.common['Authorization'] = token
+
+  return axios({
+    method: 'delete',
+    url,
+    params: data,
+    config,
+    headers: { Authorization: `Bearer ${userData.token}` }
+  })
+    .then(response => {
+      if (!response?.data[0]?.ERROR) {
+        const m = response.data[0].MESSAGE
+        const c = response.data[0].CODE
+        if (config.toast) {
+          toast.success(`${m} WITH CODE: ${c}`, toastProps)
+        }
+      } else {
+        if (config.toast) {
+          toast.error(response?.data[0]?.ERROR, toastProps)
+        }
+
+        return false
+      }
+
+      return response
+    })
+    .catch(error => {
+      if (config.toast) {
+        toast.error(error.message, toastProps)
+      }
+
+      return false
+    })
+}
+
+export const fileUpload = (url, { data = {}, file = null } = {}) => {
+  const userData = JSON.parse(decUserData(window.localStorage.getItem('userData')))
+  const token = `Bearer ${userData.token}`
+  axios.defaults.headers.common['Authorization'] = token
+
+  const formData = new FormData()
+  formData.append('fileDetails', data.file)
+  axios
+    .post(url, formData, {
+      params: { dir: data.dir, fileName: data.fileName, isSecure: data.isSecure },
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    .then(response => {
+      return response
+    })
+    .catch(error => {
+      toast.error(error.message, toastProps)
+
+      return false
+    })
+}

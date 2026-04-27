@@ -1,0 +1,428 @@
+// ** MUI Imports
+import Box from '@mui/material/Box'
+import Card from '@mui/material/Card'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
+import CardContent from '@mui/material/CardContent'
+import Grid from '@mui/material/Grid'
+import {
+  Autocomplete,
+  Checkbox,
+  CircularProgress,
+  FormControl,
+  FormControlLabel,
+  InputLabel,
+  Radio,
+  RadioGroup,
+  TextField
+} from '@mui/material'
+import IconifyIcon from 'src/@core/components/icon'
+import { Controller, useForm } from 'react-hook-form'
+import { priceOptions } from 'src/configs'
+import { styled, useTheme } from '@mui/material/styles'
+import { useRouter } from 'next/router'
+import { Autocomplete as GAutocomplete, useLoadScript } from '@react-google-maps/api'
+import { useEffect, useState } from 'react'
+import { countryISO, getGlobalParametersLOV, jsonToQueryString } from 'src/@core/utils'
+import { CustomTab } from '../tab/custom-tab'
+
+const placesLibrary = ['places']
+
+// Styled Grid component
+// Styled Grid component
+const StyledGrid = styled(Grid)(({ theme }) => ({
+  [theme.breakpoints.down('sm')]: {
+    order: -1,
+    display: 'flex',
+    justifyContent: 'center'
+  }
+}))
+
+// Styled component for the image
+const Img = styled('img')(({ theme }) => ({
+  right: 0,
+  bottom: 0,
+  zIndex: -1,
+  height: '100%' /* Sets the image height to 100% of the container's height */,
+  width: '100%',
+  position: 'absolute' /* Allows positioning relative to the container */,
+  objectFit: 'cover' /* Ensures the image covers the entire container */
+}))
+
+export const SearchNewHomesSectionCard = ({ title, subtitle, filterState, setFilterState, setIsFiltered }) => {
+  // ** Hook
+  const theme = useTheme()
+  const { replace } = useRouter()
+  const [propertyTypeOptionsNH, setPropertyTypeOptionsNH] = useState([])
+  const [propertyTypeOptionsND, setPropertyTypeOptionsND] = useState([])
+  const [bedroomsOptions, setBedroomsOptions] = useState([])
+  const [tabValue, setTabValue] = useState(null)
+
+  const defaultValues = {
+    minBeds: null,
+    maxPrice: null,
+    propertyTypeNH: '0',
+    propertyTypeND: '0',
+    keywords: null
+  }
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors }
+  } = useForm({ defaultValues })
+
+  const [searchResult, setSearchResult] = useState('Result: none')
+  const [searchState, setSearchState] = useState()
+
+  const setPropertyType = async () => {
+    const data = await getGlobalParametersLOV('PROPTYPE')
+
+    //Bind Property Type List
+    if (data?.length > 0) {
+      const _dataNH = data.filter((v, i) => i == 5 || i == 11 || i == 20 || i == 23)
+      const _dataND = data.filter((v, i) => i == 10 || i == 11)
+      _dataNH.push({ value: 0, label: 'Show all' })
+      _dataND.push({ value: 0, label: 'Show all' })
+      setPropertyTypeOptionsNH(_dataNH.sort((a, b) => a.value - b.value).filter((v, i) => i < 5))
+      setPropertyTypeOptionsND(_dataND.sort((a, b) => a.value - b.value).filter((v, i) => i < 5))
+    }
+  }
+
+  const setBedrooms = async () => {
+    const data = await getGlobalParametersLOV('BEDROOMS')
+
+    //Bind Bedrooms List
+    if (data?.length > 0) {
+      const _data = data
+      _data.push({ value: '0', label: 'No Limit' })
+      setBedroomsOptions(_data.sort((a, b) => a.value - b.value))
+    }
+  }
+
+  const initialized = async () => {
+    await setBedrooms()
+    await setPropertyType()
+    setValue('minBeds', { value: '0', label: 'No Limit' })
+    setValue('maxPrice', { value: '0', label: 'No Limit' })
+    setValue('propertyTypeNH', propertyTypeOptionsNH[0])
+    setValue('propertyTypeND', propertyTypeOptionsND[0])
+  }
+  useEffect(() => {
+    initialized()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Handle click event on a list item in search result
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY,
+    libraries: placesLibrary
+  })
+
+  function onLoad(autocomplete) {
+    setSearchResult(autocomplete)
+  }
+
+  function onPlaceChanged() {
+    if (searchResult != null) {
+      const place = searchResult.getPlace()
+      const name = place.name
+      const status = place.business_status
+      const formattedAddress = place.formatted_address
+
+      setSearchState({ name, status, formattedAddress })
+    } else {
+      alert('Please enter text')
+    }
+  }
+
+  const onSubmit = data => {
+    const location = searchState?.formattedAddress ?? null
+    const minBeds = data.minBeds.value
+    const maxPrice = data.maxPrice.value
+    const propertyType = (tabValue == '1' ? data.propertyTypeNH : data.propertyTypeND) ?? 0
+
+    let params = {}
+    params = location !== null ? { ...params, location } : params
+    params = minBeds !== '0' ? { ...params, minBeds } : params
+    params = maxPrice !== '0' ? { ...params, maxPrice } : params
+    params = { ...params, propertyType }
+
+    const _params = jsonToQueryString(params)
+
+    replace(`/newhome/properties${_params}`)
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <Box
+        sx={{
+          position: 'relative',
+          bgcolor: 'transparent',
+          minHeight: 350
+        }}
+      >
+        <CardContent
+          sx={{ p: theme => `${theme.spacing(7, 7.5)} !important`, height: '100%' }}
+          display='flex'
+          justifyContent='center'
+          alignItems='center'
+        >
+          <Box
+            display='flex'
+            justifyContent='center'
+            alignItems='center'
+            sx={{ width: '100%', height: '100%', m: { md: 5, xs: 1 } }}
+          >
+            <Grid container spacing={6} textAlign='center'>
+              <Grid item md={4} xs={12} display='flex' justifyContent='center'>
+                <Card sx={{ p: 5 }}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} textAlign='left'>
+                      <Typography variant='h6' fontWeight='bold'>
+                        {title}
+                      </Typography>
+                      <Typography variant='subtitle2'>{subtitle}</Typography>
+                    </Grid>
+                    <Grid item xs={12} textAlign='left'>
+                      <CustomTab
+                        setTabValue={setTabValue}
+                        data={[
+                          {
+                            value: '1',
+                            label: 'New Homes',
+                            children: (
+                              <Grid container spacing={3}>
+                                <Grid item xs={12} textAlign='left'>
+                                  <Typography variant='subtitle2'>Search area</Typography>
+                                  {isLoaded ? (
+                                    <GAutocomplete
+                                      options={{
+                                        componentRestrictions: { country: countryISO }
+                                      }}
+                                      onPlaceChanged={onPlaceChanged}
+                                      onLoad={onLoad}
+                                    >
+                                      <TextField
+                                        id='icons-start-adornment'
+                                        size='medium'
+                                        placeholder='Find Location'
+                                        fullWidth
+                                      />
+                                    </GAutocomplete>
+                                  ) : (
+                                    <CircularProgress color='secondary' />
+                                  )}
+                                </Grid>
+                                <Grid item xs={12} textAlign='left'>
+                                  <Grid container spacing={3}>
+                                    <Grid item md={6} xs={12}>
+                                      <FormControl fullWidth size='small'>
+                                        <Controller
+                                          name='minBeds'
+                                          control={control}
+                                          render={({ field }) => {
+                                            return (
+                                              <Autocomplete
+                                                size='small'
+                                                options={bedroomsOptions}
+                                                disableClearable
+                                                defaultValue={bedroomsOptions[0]}
+                                                value={field.value?.value ? field.value : null}
+                                                getOptionLabel={option => option.label}
+                                                onChange={(_, data) => field.onChange(data)}
+                                                renderInput={params => (
+                                                  <TextField {...params} label='Min Beds' variant='outlined' />
+                                                )}
+                                              />
+                                            )
+                                          }}
+                                        />
+                                      </FormControl>
+                                    </Grid>
+                                    <Grid item md={6} xs={12}>
+                                      <FormControl fullWidth size='small'>
+                                        <Controller
+                                          name='maxPrice'
+                                          control={control}
+                                          render={({ field }) => {
+                                            return (
+                                              <Autocomplete
+                                                size='small'
+                                                options={priceOptions}
+                                                disableClearable
+                                                value={field.value?.value ? field.value : null}
+                                                getOptionLabel={option => option.label}
+                                                onChange={(_, data) => field.onChange(data)}
+                                                renderInput={params => (
+                                                  <TextField {...params} label='Max Price' variant='outlined' />
+                                                )}
+                                              />
+                                            )
+                                          }}
+                                        />
+                                      </FormControl>
+                                    </Grid>
+                                    <Grid item xs={12} sm={12}>
+                                      <InputLabel id='propertyTypeNH-label'>Property Type</InputLabel>
+                                      <FormControl fullWidth size='small' variant='filled'>
+                                        <RadioGroup row aria-label='propertyTypeNH' name='propertyTypeNHG'>
+                                          {propertyTypeOptionsNH.map(item => (
+                                            <Controller
+                                              key={item.value}
+                                              name='propertyTypeNH'
+                                              control={control}
+                                              rules={{ required: true }}
+                                              render={({ field: { value, onChange } }) => (
+                                                <FormControlLabel
+                                                  value={item.value}
+                                                  onChange={onChange}
+                                                  control={<Radio color='secondary' checked={item.value == value} />}
+                                                  label={item.label}
+                                                />
+                                              )}
+                                            />
+                                          ))}
+                                        </RadioGroup>
+                                      </FormControl>
+                                    </Grid>
+                                  </Grid>
+                                </Grid>
+                                <Grid item xs={12} textAlign='left'>
+                                  <Button variant='contained' size='medium' fullWidth type='submit'>
+                                    <IconifyIcon width='16' style={{ padding: 0 }} icon='tabler:search' />
+                                    Search
+                                  </Button>
+                                </Grid>
+                              </Grid>
+                            )
+                          },
+                          {
+                            value: '2',
+                            label: 'New Development',
+                            children: (
+                              <Grid container spacing={3}>
+                                <Grid item xs={12} textAlign='left'>
+                                  <Typography variant='subtitle2'>Search area</Typography>
+                                  {isLoaded ? (
+                                    <GAutocomplete
+                                      options={{
+                                        componentRestrictions: { country: countryISO }
+                                      }}
+                                      onPlaceChanged={onPlaceChanged}
+                                      onLoad={onLoad}
+                                    >
+                                      <TextField
+                                        id='icons-start-adornment'
+                                        size='medium'
+                                        placeholder='Find Location'
+                                        fullWidth
+                                      />
+                                    </GAutocomplete>
+                                  ) : (
+                                    <CircularProgress color='secondary' />
+                                  )}
+                                </Grid>
+                                <Grid item xs={12} textAlign='left'>
+                                  <Grid container spacing={3}>
+                                    <Grid item md={6} xs={12}>
+                                      <FormControl fullWidth size='small'>
+                                        <Controller
+                                          name='minBeds'
+                                          control={control}
+                                          render={({ field }) => {
+                                            return (
+                                              <Autocomplete
+                                                size='small'
+                                                options={bedroomsOptions}
+                                                disableClearable
+                                                defaultValue={bedroomsOptions[0]}
+                                                value={field.value?.value ? field.value : null}
+                                                getOptionLabel={option => option.label}
+                                                onChange={(_, data) => field.onChange(data)}
+                                                renderInput={params => (
+                                                  <TextField {...params} label='Min Beds' variant='outlined' />
+                                                )}
+                                              />
+                                            )
+                                          }}
+                                        />
+                                      </FormControl>
+                                    </Grid>
+                                    <Grid item md={6} xs={12}>
+                                      <FormControl fullWidth size='small'>
+                                        <Controller
+                                          name='maxPrice'
+                                          control={control}
+                                          render={({ field }) => {
+                                            return (
+                                              <Autocomplete
+                                                size='small'
+                                                options={priceOptions}
+                                                disableClearable
+                                                value={field.value?.value ? field.value : null}
+                                                getOptionLabel={option => option.label}
+                                                onChange={(_, data) => field.onChange(data)}
+                                                renderInput={params => (
+                                                  <TextField {...params} label='Max Price' variant='outlined' />
+                                                )}
+                                              />
+                                            )
+                                          }}
+                                        />
+                                      </FormControl>
+                                    </Grid>
+                                    <Grid item xs={12} sm={12}>
+                                      <InputLabel id='propertyTypeND-label'>Property Type</InputLabel>
+                                      <FormControl fullWidth size='small' variant='filled'>
+                                        <RadioGroup row aria-label='propertyTypeND' name='propertyTypeNDG'>
+                                          {propertyTypeOptionsND.map(item => (
+                                            <Controller
+                                              key={item.value}
+                                              name='propertyTypeND'
+                                              control={control}
+                                              rules={{ required: true }}
+                                              render={({ field: { value, onChange } }) => (
+                                                <FormControlLabel
+                                                  value={item.value}
+                                                  onChange={onChange}
+                                                  control={<Radio color='secondary' checked={item.value == value} />}
+                                                  label={item.label}
+                                                />
+                                              )}
+                                            />
+                                          ))}
+                                        </RadioGroup>
+                                      </FormControl>
+                                    </Grid>
+                                  </Grid>
+                                </Grid>
+                                <Grid item xs={12} textAlign='left'>
+                                  <Button variant='contained' size='medium' fullWidth type='submit'>
+                                    <IconifyIcon width='16' style={{ padding: 0 }} icon='tabler:search' />
+                                    Search
+                                  </Button>
+                                </Grid>
+                              </Grid>
+                            )
+                          }
+                        ]}
+                      />
+                    </Grid>
+                  </Grid>
+                </Card>
+              </Grid>
+
+              <StyledGrid item xs={12} md={6}>
+                <Img alt='' src={`/images/Background.jpg`} />
+              </StyledGrid>
+            </Grid>
+          </Box>
+        </CardContent>
+      </Box>
+    </form>
+  )
+}

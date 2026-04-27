@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /website/
+Disallow: /account/
+Disallow: /saved/
+Disallow: /savedsearch/
+Disallow: /login/
+Disallow: /register/
+Disallow: /forgot-password/
+Disallow: /reset-password/
+Disallow: /acl/
+
+Sitemap: https://gocommunitymaptymap.com/sitemap.xml
