@@ -1,0 +1,17 @@
+﻿using BusinessLogicLayer.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BusinessLogicLayer.Interfaces
+{
+    public interface IUtilitiesRepository
+    {
+        public object GetUtilities(Utilities utilities);
+        public object CreateUtilities(Utilities utilities);
+        public object UpdateUtilities(Utilities utilities);
+        public object DeleteUtilities(Utilities utilities);
+    }
+}

@@ -1,0 +1,103 @@
+﻿using BusinessLogicLayer.Interfaces;
+using BusinessLogicLayer.Models;
+using BusinessLogicLayer.Repositories;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+
+namespace PresentationLayer.Controllers
+{
+    [Route("[controller]/[action]")]
+    [ApiController]
+    public class SetPropertiesController : ControllerBase
+    {
+        private readonly ISetPropertiesRepository _property;
+        public SetPropertiesController(ISetPropertiesRepository property)
+        {
+            _property = property;
+        }
+        [HttpGet]
+        public IActionResult GetProperty([FromQuery] SetProperties setProperties)
+        {
+
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid Data!");
+
+                var result = _property.GetProperty(setProperties);
+
+                if (result == null)
+                    return BadRequest("Request Faild!");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                //log error
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpPost]
+        [Authorize]
+        public IActionResult CreateProperty(SetProperties setProperties)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid Data!");
+
+                var result = _property.CreateProperty(setProperties);
+                if (result == null)
+                    return BadRequest("Request Faild!");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpPost]
+        [Authorize]
+        public IActionResult UpdateProperty(SetProperties setProperties)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid Data!");
+
+                var result = _property.UpdateProperty(setProperties);
+                if (result == null)
+                    return BadRequest("Request Faild!");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpDelete]
+        [Authorize]
+        public IActionResult DeleteProperty([Required] int PROPERTY_ID,[Required] int USER)
+        {
+            SetProperties setProperties = new SetProperties();
+            setProperties.PROPERTY_ID = PROPERTY_ID;
+            setProperties.USER = USER;
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid Data!");
+
+                var result = _property.DeleteProperty(setProperties);
+
+                if (result == null)
+                    return BadRequest("Request Faild!");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                //log error
+                return StatusCode(500, ex.Message);
+            }
+        }
+    }
+}
