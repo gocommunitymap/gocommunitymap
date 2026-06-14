@@ -3,7 +3,7 @@ import { Box, List, ListItem, ListItemAvatar, ListItemText, Avatar, Typography, 
 
 const CommunityMapListPanel = ({ properties, selectedProperty, onSelect }) => {
   return (
-    <Paper elevation={1} sx={{ mt: 2, borderRadius: 3, overflow: 'auto', maxHeight: '70vh' }}>
+    <Paper elevation={1} sx={{ mt: 2, borderRadius: 3, overflow: 'auto', maxHeight: 200 }}>
       <List>
         {properties.map(property => (
           <ListItem

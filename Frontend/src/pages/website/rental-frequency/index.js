@@ -20,6 +20,7 @@ const defaultValues = {
   ID: null,
   PARAMETER_CODE_3: null,
   PARAMETER_DESCRIPTION_3: null,
+  PARAMETER_CODE_4: null,
   ACTIVE: true
 }
 
@@ -67,6 +68,7 @@ const RentalFrequency = () => {
     setValue('ID', row.ID)
     setValue('PARAMETER_CODE_3', row.PARAMETER_CODE_3)
     setValue('PARAMETER_DESCRIPTION_3', row.PARAMETER_DESCRIPTION_3)
+    setValue('PARAMETER_CODE_4', row.PARAMETER_CODE_4)
     setValue('ACTIVE', row.ACTIVE)
     setStates({ ...states, isEdit: true, isOpenModal: true, modalForm: 'c' })
   }
@@ -96,6 +98,7 @@ const RentalFrequency = () => {
         ID: data.ID,
         PARAMETER_CODE_3: data.PARAMETER_CODE_3,
         PARAMETER_DESCRIPTION_3: data.PARAMETER_DESCRIPTION_3,
+        PARAMETER_CODE_4: data.PARAMETER_CODE_4,
         ACTIVE: data.ACTIVE
       })
     ).then(response => {
@@ -130,24 +133,24 @@ const RentalFrequency = () => {
           filterable: false,
           editable: false,
           disableColumnMenu: false,
-          flex: 1,
+
           minWidth: 100,
           align: 'right',
           headerAlign: 'right',
           headerName: 'Action',
           renderCell: ({ row }) => {
             return (
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'row' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'end', flexDirection: 'row' }}>
                 {isAllowed(permissions, 'U') && (
                   <Tooltip title='Edit' placement='top'>
-                    <IconButton size='small' onClick={() => handleEdit(row)}>
+                    <IconButton color='primary' size='small' onClick={() => handleEdit(row)}>
                       <Icon icon='tabler:edit' />
                     </IconButton>
                   </Tooltip>
                 )}
                 {isAllowed(permissions, 'D') && (
                   <Tooltip title='Delete' placement='top'>
-                    <IconButton size='small' onClick={() => handleConfirm(row)}>
+                    <IconButton color='error' size='small' onClick={() => handleConfirm(row)}>
                       <Icon icon='tabler:trash' />
                     </IconButton>
                   </Tooltip>
@@ -199,6 +202,7 @@ const RentalFrequency = () => {
   const exportDataList = dataList?.map(data => ({
     CODE: data.PARAMETER_CODE_3,
     DESCRIPTION: data.PARAMETER_DESCRIPTION_3,
+    'FREQUENCY DAYS': data.PARAMETER_CODE_4,
     ACTIVE: getActiveProps(data.ACTIVE).label
   }))
 
@@ -211,10 +215,8 @@ const RentalFrequency = () => {
             <DataGrid
               rowSelection={false}
               rows={dataList ?? []}
-              pageSize={states.pageSize}
               pageSizeOptions={[5, 10, 25]}
-              components={{ Toolbar: DataGridHeaderToolbar }}
-              onPageSizeChange={newPageSize => setStates({ ...states, pageSize: newPageSize })}
+              slots={{ toolbar: DataGridHeaderToolbar }}
               getRowHeight={() => 'auto'}
               initialState={{
                 pagination: {
@@ -223,7 +225,7 @@ const RentalFrequency = () => {
                   }
                 }
               }}
-              componentsProps={{
+              slotProps={{
                 baseButton: {
                   variant: 'outlined'
                 },
@@ -254,7 +256,6 @@ const RentalFrequency = () => {
               rowHeight={32}
               getRowId={row => row.ID}
               columns={updateColumns}
-              disableSelectionOnClick
             />
           </Card>
         </Grid>

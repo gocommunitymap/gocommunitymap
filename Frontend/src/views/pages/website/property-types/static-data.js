@@ -4,6 +4,7 @@ import { getActiveProps } from 'src/@core/utils'
 export const columns = [
   { flex: 1, headerName: 'CODE', field: 'PARAMETER_CODE_3' },
   { flex: 1, minWidth: 400, headerName: 'DESCRIPTION', field: 'PARAMETER_DESCRIPTION_3' },
+  { flex: 1, minWidth: 200, headerName: 'LISTING TYPE', field: 'LISTING_TYPE' },
   {
     flex: 1,
     minWidth: 120,

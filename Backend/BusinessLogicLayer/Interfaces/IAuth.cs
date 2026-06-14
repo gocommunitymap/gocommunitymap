@@ -10,7 +10,7 @@ namespace BusinessLogicLayer.Interfaces
 {
     public interface IAuth
     {
-        public object GenerateToken(Models.Login user,bool isAuth = false, string? refreshToken = null);
+        public object GenerateToken(Models.Login user,bool isAuth = false, string? refreshToken = null, DataAccessLayer.Models.User UserDetail = null);
         public TokenValidationParameters GetTokenValidationParameters();
         public object AuthenticateValidToken(Refresh_Token refreshToken);
         

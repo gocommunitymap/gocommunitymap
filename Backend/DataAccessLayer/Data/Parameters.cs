@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Oracle.ManagedDataAccess.Client;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 
 namespace DataAccessLayer.Data
 {
@@ -13,6 +14,8 @@ namespace DataAccessLayer.Data
         private readonly DynamicParameters dynamicParameters = new DynamicParameters();
         private readonly List<OracleParameter> oracleParameters = new List<OracleParameter>();
         private readonly List<SqlParameter> sqlParameters = new List<SqlParameter>();
+        
+
         private static OracleDbType GetOracleDbType(object o)
         {
 

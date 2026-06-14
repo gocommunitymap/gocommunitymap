@@ -20,7 +20,8 @@ namespace DataAccessLayer.Interface
         public object ExecuteProc(string query);
         public List<dynamic> ExecuteProcDT(string query, Parameters parameters);
 
-        public IDbConnection GetConnection();
+        public IDbConnection 
+            GetConnection();
 
     }
 }

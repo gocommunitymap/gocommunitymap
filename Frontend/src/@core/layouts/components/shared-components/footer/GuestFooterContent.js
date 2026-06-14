@@ -15,7 +15,7 @@ const footerColumns = [
     links: [
       { label: 'Luxury Villas', href: '/hotels/properties' },
       { label: 'Urban Apartments', href: '/newhome/properties' },
-      { label: 'Mountain Retreats', href: '/rental/properties' }
+      { label: 'Mountain Retreats', href: '/rentals/properties' }
     ]
   },
   {
@@ -44,7 +44,10 @@ const GuestFooterContent = () => {
           <Grid item xs={12} md={3}>
             <Stack direction='row' spacing={1.2} alignItems='center'>
               <CompanyLogo width='36' />
-              <Typography variant='h6' sx={{ color: '#0b1730', fontWeight: 800, fontFamily: defaultPageFont }}>
+              <Typography
+                variant='h6'
+                sx={{ fontSize: '16px !important', color: '#0b1730', fontWeight: 800, fontFamily: defaultPageFont }}
+              >
                 {themeConfig.templateName}
               </Typography>
             </Stack>
@@ -108,7 +111,7 @@ const GuestFooterContent = () => {
               fontFamily: defaultPageFont
             }}
           >
-            © 2024 GoCommunityMap. Premium global stays.
+            © {new Date().getFullYear()} {themeConfig.templateName}. Premium global stays.
           </Typography>
           <Stack direction='row' spacing={2.5}>
             <Link href='/privacy' style={{ textDecoration: 'none' }}>

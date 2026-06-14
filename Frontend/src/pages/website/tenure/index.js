@@ -130,24 +130,24 @@ const Tenure = () => {
           filterable: false,
           editable: false,
           disableColumnMenu: false,
-          flex: 1,
+
           minWidth: 100,
           align: 'right',
           headerAlign: 'right',
           headerName: 'Action',
           renderCell: ({ row }) => {
             return (
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'row' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'end', flexDirection: 'row' }}>
                 {isAllowed(permissions, 'U') && (
                   <Tooltip title='Edit' placement='top'>
-                    <IconButton size='small' onClick={() => handleEdit(row)}>
+                    <IconButton color='primary' size='small' onClick={() => handleEdit(row)}>
                       <Icon icon='tabler:edit' />
                     </IconButton>
                   </Tooltip>
                 )}
                 {isAllowed(permissions, 'D') && (
                   <Tooltip title='Delete' placement='top'>
-                    <IconButton size='small' onClick={() => handleConfirm(row)}>
+                    <IconButton color='error' size='small' onClick={() => handleConfirm(row)}>
                       <Icon icon='tabler:trash' />
                     </IconButton>
                   </Tooltip>
@@ -211,10 +211,8 @@ const Tenure = () => {
             <DataGrid
               rowSelection={false}
               rows={dataList ?? []}
-              pageSize={states.pageSize}
               pageSizeOptions={[5, 10, 25]}
-              components={{ Toolbar: DataGridHeaderToolbar }}
-              onPageSizeChange={newPageSize => setStates({ ...states, pageSize: newPageSize })}
+              slots={{ toolbar: DataGridHeaderToolbar }}
               getRowHeight={() => 'auto'}
               initialState={{
                 pagination: {
@@ -223,7 +221,7 @@ const Tenure = () => {
                   }
                 }
               }}
-              componentsProps={{
+              slotProps={{
                 baseButton: {
                   variant: 'outlined'
                 },
@@ -254,7 +252,6 @@ const Tenure = () => {
               rowHeight={32}
               getRowId={row => row.ID}
               columns={updateColumns}
-              disableSelectionOnClick
             />
           </Card>
         </Grid>

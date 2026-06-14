@@ -7,12 +7,9 @@ const TRUNCATE_LENGTH = 400
 const PropertyAbout = ({ summary }) => {
   const [expanded, setExpanded] = useState(false)
 
-  const text =
-    summary ||
-    'Escape to the tranquility of this property, a meticulously restored traditional residence nestled in a peaceful location. The property combines traditional architecture with modern amenities to give you a unique and comfortable experience.'
+  const text = summary || ''
 
   const isTruncatable = text.length > TRUNCATE_LENGTH
-  const displayed = expanded || !isTruncatable ? text : `${text.slice(0, TRUNCATE_LENGTH)}…`
 
   return (
     <Card variant='outlined' sx={{ p: 3, mb: 4 }}>
@@ -20,7 +17,11 @@ const PropertyAbout = ({ summary }) => {
         About This Property
       </Typography>
       <Typography variant='body2' sx={{ lineHeight: 1.8, mb: 2, color: '#555' }}>
-        {displayed}
+        <div
+          dangerouslySetInnerHTML={{
+            __html: text?.replaceAll('\\n', '<br>')
+          }}
+        ></div>
       </Typography>
       {isTruncatable && (
         <Typography

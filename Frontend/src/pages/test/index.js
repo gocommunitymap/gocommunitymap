@@ -23,7 +23,6 @@ function Test() {
     // This is just an example of getting and using the map instance!!! don't just blindly copy!
     const bounds = new window.google.maps.LatLngBounds(center)
     map.fitBounds(bounds)
-    console.log('map', map)
     setMap(map)
   }, [])
 

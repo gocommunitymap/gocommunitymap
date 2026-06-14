@@ -30,17 +30,24 @@ export const defaultSuggestionsData = [
 
 export const listingTypes = {
   HOTELS: { LISTING_TYPE_ID: 1, ROUTE: 'hotels', LABEL: 'Hotels' },
-  RENTAL: { LISTING_TYPE_ID: 2, ROUTE: 'rental', LABEL: 'Rental' },
-  NEW_HOMES: { LISTING_TYPE_ID: 3, ROUTE: 'newhome', LABEL: 'New Home' },
-  HOUSE_PRICE: { LISTING_TYPE_ID: 4, ROUTE: 'houseprice', LABEL: 'House Price' },
-  AGENT_VALUATION: { LISTING_TYPE_ID: 5, ROUTE: 'agentvaluation', LABEL: 'Agent Valuation' },
-  INSTANT_VALUATION: { LISTING_TYPE_ID: 6, ROUTE: 'instantvaluation', LABEL: 'Instant Valuation' }
+  RENTAL: { LISTING_TYPE_ID: 2, ROUTE: 'rental', LABEL: 'Rental' }
+
+  // NEW_HOMES: { LISTING_TYPE_ID: 3, ROUTE: 'newhome', LABEL: 'New Home' },
+  // HOUSE_PRICE: { LISTING_TYPE_ID: 4, ROUTE: 'houseprice', LABEL: 'House Price' },
+  // AGENT_VALUATION: { LISTING_TYPE_ID: 5, ROUTE: 'agentvaluation', LABEL: 'Agent Valuation' },
+  // INSTANT_VALUATION: { LISTING_TYPE_ID: 6, ROUTE: 'instantvaluation', LABEL: 'Instant Valuation' }
+}
+
+export const productTypes = {
+  FURNITURE: { PRODUCT_TYPE_ID: 1, ROUTE: 'furniture', LABEL: 'Furniture' }
 }
 
 export const footerData = [
   {
     id: 1,
-    text: `Sold house prices provided by Land Registry/Registers of [?] © [${themeConfig.templateName}] copyright 2024. Our website is completely free for you to use but we may receive a commission from some of the companies we link to on the site.`
+    text: `Sold house prices provided by Land Registry/Registers of [?] © [${
+      themeConfig.templateName
+    }] copyright ${new Date().getFullYear()}. Our website is completely free for you to use but we may receive a commission from some of the companies we link to on the site.`
   },
   {
     id: 2,
@@ -224,7 +231,7 @@ export const topNavBar = {
     {
       NAV_ID: 2,
       NAV_DESCRIPTION: 'Rental',
-      LINK: '/rental/',
+      LINK: '/rentals/',
       SORT_ORDER: 2,
       TYPE: 1,
       ICON: null,
@@ -299,13 +306,7 @@ export const topNavBar = {
 }
 
 export const displayTypes = {
-  HOME: '1',
-  HOTELS: '2',
-  RENTAL: '3',
-  NEW_HOMES: '4',
-  HOUSE_PRICE: '5',
-  AGENT_VALUATION: '5',
-  INSTANT_VALUATION: '6'
+  DISCOVER: '1'
 }
 
 export const alertTypes = [

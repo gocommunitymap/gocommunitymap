@@ -37,6 +37,29 @@ namespace PresentationLayer.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+        
+        [HttpGet]
+        [Authorize]
+        public IActionResult GetPropertySetupList(int LISTING_TYPE_ID, int PAGE_NUMBER, int PAGE_SIZE)
+        {
+
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid Data!");
+
+                var result = _property.GetPropertySetupList(LISTING_TYPE_ID, PAGE_NUMBER, PAGE_SIZE);
+
+                if (result == null)
+                    return BadRequest("Request Faild!");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                //log error
+                return StatusCode(500, ex.Message);
+            }
+        }
         [HttpPost]
         [Authorize]
         public IActionResult CreateProperty(SetProperties setProperties)

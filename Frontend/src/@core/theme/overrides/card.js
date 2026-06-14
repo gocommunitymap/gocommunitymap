@@ -8,9 +8,10 @@ const Card = skin => {
             marginTop: theme.spacing(-1),
             marginRight: theme.spacing(-3)
           },
-          '& .MuiTableContainer-root, & .MuiDataGrid-root, & .MuiDataGrid-columnHeaders': {
-            borderRadius: 0
-          }
+          '& .MuiTableContainer-root, & .MuiDataGrid-root, & .MuiDataGrid-columnHeaders, & .MuiDataGrid-container--top':
+            {
+              borderRadius: 0
+            }
         })
       },
       defaultProps: {

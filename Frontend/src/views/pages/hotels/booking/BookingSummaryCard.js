@@ -11,7 +11,7 @@ import { defaultPageFont } from 'src/@core/utils'
 const BookingSummaryCard = ({
   propertyName,
   place,
-  rating = 9.2,
+  rating,
   image,
   checkIn,
   checkOut,
@@ -78,9 +78,9 @@ const BookingSummaryCard = ({
                       <Typography variant='caption' fontWeight={800} color='#fff'>
                         {rating}
                       </Typography>
-                      <Typography variant='caption' color='rgba(255,255,255,0.85)'>
+                      {/* <Typography variant='caption' color='rgba(255,255,255,0.85)'>
                         Superb
-                      </Typography>
+                      </Typography> */}
                     </Stack>
                   }
                   size='small'
@@ -158,7 +158,7 @@ const BookingSummaryCard = ({
             {serviceFee > 0 && (
               <Stack direction='row' justifyContent='space-between' sx={{ mb: 0.75 }}>
                 <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
-                  Taxes &amp; fees
+                  Taxes & fees
                 </Typography>
                 <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
                   $ {serviceFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}

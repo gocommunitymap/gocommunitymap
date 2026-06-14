@@ -62,7 +62,7 @@ const getFullName = params =>
 
 const TableColumns = () => {
   // ** States
-  const [pageSize, setPageSize] = useState(7)
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 7 })
   const [hideNameColumn, setHideNameColumn] = useState(false)
 
   const columns = [
@@ -174,10 +174,9 @@ const TableColumns = () => {
         autoHeight
         rows={rows}
         columns={columns}
-        pageSize={pageSize}
-        disableSelectionOnClick
         pageSizeOptions={[7, 10, 25, 50]}
-        onPageSizeChange={newPageSize => setPageSize(newPageSize)}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
       />
     </Card>
   )

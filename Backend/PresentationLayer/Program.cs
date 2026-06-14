@@ -10,6 +10,7 @@ using BusinessLogicLayer.Models;
 using PresentationLayer.Controllers;
 using BusinessLogicLayer.Services;
 using PresentationLayer.Middleware;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +47,21 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IJwtExtractService, JwtExtractService>();
 builder.Services.AddScoped<IHotelBookingsRepository, HotelBookingsRepository>();
+builder.Services.AddSingleton<ILogService, LogService>();
+builder.Services.AddScoped<IEmailTemplateSettingsRepository, EmailTemplateSettingsRepository>();
+builder.Services.AddScoped<ICommunitiesRepository, CommunitiesRepository>();
+builder.Services.AddScoped<IBookingCalendarRepository, BookingCalendarRepository>();
+
+var appSettings = new AppSettings();
+builder.Configuration.Bind(appSettings);
+builder.Services.AddSingleton(appSettings); // <-- add this
+builder.Services.AddSingleton<IAppSettingsService, AppSettingsService>();
 builder.Services.AddHttpClient();
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 200 * 1024 * 1024; // 200MB
+});
 
 builder.Services.AddCors(options =>
 {

@@ -9,7 +9,7 @@ export const axios = base_axios.create({
   baseURL: `${process.env.NEXT_PUBLIC_BASEURL}`
 })
 
-export const getRequest = (
+export const getRequest = async (
   url,
   { data = {}, config = { useBaseURL: true, isGuest: false, errorMessage: null, errorToast: true } } = {}
 ) => {
@@ -20,7 +20,6 @@ export const getRequest = (
       try {
         userData = JSON.parse(decUserData(window.localStorage.getItem('userData')))
       } catch (error) {}
-
       const token = `Bearer ${userData?.token}`
       axios.defaults.headers.common['Authorization'] = token
     }
@@ -75,7 +74,12 @@ export const getRequest = (
 
 export const postRequest = (
   url,
-  { data = {}, params = {}, config = { toast: true, isGuest: false }, customMessage = null } = {}
+  {
+    data = {},
+    params = {},
+    config = { toast: true, isGuest: false, returnErrorResponse: false },
+    customMessage = null
+  } = {}
 ) => {
   if (!config.isGuest) {
     const userData = JSON.parse(decUserData(window.localStorage.getItem('userData')))
@@ -88,8 +92,6 @@ export const postRequest = (
     url,
     data,
     params
-
-    // headers: { Authorization: `Bearer ${userData.token}` }
   })
     .then(response => {
       if (!response?.data[0]?.ERROR) {
@@ -102,8 +104,10 @@ export const postRequest = (
             toast.success(`${m} WITH CODE: ${c}`, toastProps)
           }
         }
+      } else if (config.returnErrorResponse) {
+        return { error: response.data[0].ERROR, code: response.data[0].CODE }
       } else {
-        toast.error(response?.data[0]?.ERROR, toastProps, { style: { zIndex: '10000 !importent' } })
+        toast.error(response?.data[0]?.ERROR, toastProps, { style: { zIndex: '10000 !important' } })
 
         return false
       }
@@ -120,7 +124,6 @@ export const postRequest = (
 
 export const deleteRequest = (url, { data = {}, config = { toast: true } } = {}) => {
   const userData = JSON.parse(decUserData(window.localStorage.getItem('userData')))
-
   const token = `Bearer ${userData.token}`
   axios.defaults.headers.common['Authorization'] = token
 
@@ -128,8 +131,7 @@ export const deleteRequest = (url, { data = {}, config = { toast: true } } = {})
     method: 'delete',
     url,
     params: data,
-    config,
-    headers: { Authorization: `Bearer ${userData.token}` }
+    config
   })
     .then(response => {
       if (!response?.data[0]?.ERROR) {

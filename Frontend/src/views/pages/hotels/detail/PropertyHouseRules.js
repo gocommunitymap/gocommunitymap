@@ -5,7 +5,6 @@ import { HOTEL_DEFAULT_RULES } from 'src/@core/utils/constant'
 
 const PropertyHouseRules = ({ rules }) => {
   const list = rules && rules.length ? rules : HOTEL_DEFAULT_RULES
-  console.log('rules', rules)
 
   return (
     <Card variant='outlined' sx={{ p: 3, mb: 4 }}>

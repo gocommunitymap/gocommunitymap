@@ -1,18 +1,28 @@
-import React, { useCallback, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader, MarkerClusterer } from '@react-google-maps/api'
-import { Box, CircularProgress } from '@mui/material'
+import { Box, CircularProgress, Typography } from '@mui/material'
+import { useRouter } from 'next/router'
+import { StarRating } from 'src/views/components'
+import { GoogleMapProvider } from 'src/@core/context/MapContext'
 
-const DEFAULT_CENTER = { lat: 35.6762, lng: 139.6503 }
+const FALLBACK_CENTER = { lat: null, lng: null }
 const DEFAULT_ZOOM = 10
 const MAP_HEIGHT = '70vh'
 
 const CommunityMapMapView = ({ properties, selectedProperty, onSelect }) => {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY
+  const router = useRouter()
+  const [userCenter, setUserCenter] = useState(null)
+  const [mapLoaded, setMapLoaded] = useState(false)
 
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'community-map-script',
-    googleMapsApiKey: apiKey || 'dummy-key'
-  })
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      pos => setUserCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { timeout: 5000 }
+    )
+  }, [])
+
   const mapRef = useRef(null)
 
   const handleMarkerClick = property => {
@@ -28,32 +38,24 @@ const CommunityMapMapView = ({ properties, selectedProperty, onSelect }) => {
           if (p.lat && p.lng) bounds.extend({ lat: p.lat, lng: p.lng })
         })
         map.fitBounds(bounds)
+      } else if (userCenter) {
+        map.panTo(userCenter)
+        map.setZoom(13)
       }
     },
-    [properties]
+    [properties, userCenter]
   )
 
-  if (loadError) {
-    return (
-      <Box sx={{ height: MAP_HEIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        Map failed to load
-      </Box>
-    )
-  }
-  if (!isLoaded) {
-    return (
-      <Box sx={{ height: MAP_HEIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Box>
-    )
-  }
-
   return (
-    <GoogleMap
-      mapContainerStyle={{ width: '100%', height: MAP_HEIGHT, borderRadius: 16 }}
-      center={DEFAULT_CENTER}
-      zoom={DEFAULT_ZOOM}
-      onLoad={handleMapLoad}
+    <GoogleMapProvider
+      mapLoaded={mapLoaded}
+      setMapLoaded={setMapLoaded}
+      mapProps={{
+        mapContainerStyle: { width: '100%', height: MAP_HEIGHT, borderRadius: 16 },
+        center: userCenter || FALLBACK_CENTER,
+        zoom: DEFAULT_ZOOM,
+        onLoad: handleMapLoad
+      }}
     >
       <MarkerClusterer>
         {clusterer =>
@@ -74,18 +76,38 @@ const CommunityMapMapView = ({ properties, selectedProperty, onSelect }) => {
             >
               {selectedProperty && selectedProperty.id === property.id && (
                 <InfoWindow onCloseClick={() => onSelect(null)}>
-                  <Box sx={{ minWidth: 200 }}>
+                  <Box
+                    sx={{ minWidth: 200, cursor: 'pointer' }}
+                    onClick={() => router.push(`/hotels/properties/${property.id}`)}
+                  >
                     <img
                       src={property.image}
                       alt={property.title}
-                      style={{ width: '100%', height: 80, objectFit: 'cover', borderRadius: 8 }}
+                      style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8 }}
                     />
                     <Box sx={{ mt: 1 }}>
-                      <strong>${property.price}</strong> | Rating: {property.rating}
+                      <Typography variant='body2'>{property.type}</Typography>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#0b1730' }}>
+                        {property.title}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#10B981' }}>
+                        ${property.price} {property.type === 'rental' ? `/${property.frequency}` : '/night'}
+                      </Typography>
+                      <StarRating value={property.rating} />
                     </Box>
                     <Box
-                      sx={{ mt: 1, color: '#1976d2', cursor: 'pointer' }}
-                      onClick={() => (window.location.href = `/${property.type}/properties/${property.id}`)}
+                      sx={{
+                        mt: 1,
+                        textAlign: 'center',
+                        color: '#fff',
+                        bgcolor: '#10B981',
+                        borderRadius: 1,
+                        py: 0.5,
+                        fontSize: '0.8rem',
+                        fontWeight: 700
+                      }}
                     >
                       View Details
                     </Box>
@@ -96,7 +118,7 @@ const CommunityMapMapView = ({ properties, selectedProperty, onSelect }) => {
           ))
         }
       </MarkerClusterer>
-    </GoogleMap>
+    </GoogleMapProvider>
   )
 }
 

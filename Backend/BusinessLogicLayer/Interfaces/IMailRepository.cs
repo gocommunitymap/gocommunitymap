@@ -10,7 +10,7 @@ namespace BusinessLogicLayer.Interfaces
 {
     public interface IMailRepository
     {
-        bool SendMail(MailData mailData);
-        Task SendEmail2(MailRequest mailRequest);
+        Task<dynamic> SendEmail2(MailRequest mailRequest);
+        Task<dynamic> SendEmail(MailRequest mailRequest);
     }
 }

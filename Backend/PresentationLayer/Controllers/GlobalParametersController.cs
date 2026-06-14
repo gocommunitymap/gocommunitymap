@@ -38,6 +38,29 @@ namespace PresentationLayer.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+        [HttpGet]
+        //[Authorize]
+        public IActionResult GetGlobalParametersByTypeCodes([Required] String? TYPE_CODES)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid Data!");
+
+                var result = _globalParameters.GetGlobalParametersByTypeCodes(TYPE_CODES);
+
+                if (result == null)
+                    return BadRequest("Request Faild!");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                //log error
+                return StatusCode(500, ex.Message);
+            }
+        }
+        
+        
         [HttpPost]
         [Authorize]
         public IActionResult CreateGlobalParameters(GlobalParameters globalParameters)

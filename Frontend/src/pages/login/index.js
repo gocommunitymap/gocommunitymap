@@ -171,7 +171,7 @@ const LoginPage = () => {
           <Box
             sx={{
               maxHeight: '85vh',
-              flex: 1,
+
               display: 'flex',
               position: 'relative',
               alignItems: 'flex-start',
@@ -210,7 +210,7 @@ const LoginPage = () => {
                 <Grid item xs={12}>
                   <Fade direction='up' in={true} style={{ transitionDelay: '1500ms' }} mountOnEnter unmountOnExit>
                     <div>
-                      <Typography variant='h5'>Go Community Map Slogan</Typography>
+                      <Typography variant='h5'>{themeConfig.templateNameSlogan}</Typography>
                     </div>
                   </Fade>
                 </Grid>
@@ -231,7 +231,17 @@ const LoginPage = () => {
             }}
           >
             <BoxWrapper>
-              <Box textAlign='center'>{hidden && <CompanyLogo width='60' />}</Box>
+              {hidden && (
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CompanyLogo width='40' />
+                  <Typography
+                    variant='h6'
+                    sx={{ ml: 2, lineHeight: 1, fontWeight: 700, fontSize: '1.5rem !important' }}
+                  >
+                    {themeConfig.templateName}
+                  </Typography>
+                </Box>
+              )}
               <Box mb={5}>
                 <Box textAlign='center' mb={10}>
                   <Link href='/' style={{ textDecoration: 'none' }}>

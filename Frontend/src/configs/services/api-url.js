@@ -27,10 +27,13 @@ export const API_URL = Object.freeze({
   DISCOVER_SECTION: '/DiscoverSection/GetDiscoverSection',
   GET_PROPERTIES_FULL_DETAILS: '/Guest/GetPropertiesFullDetails',
   GET_PROPERTIES: '/Guest/GetProperties',
+  GET_PROPERTIES_FOR_MAP: '/Guest/GetPropertiesForMap',
   GET_PROPERTIES_BY_USER: '/Guest/GetPropertiesByUser',
   GET_AGENT_INFO: '/Guest/GetAgentInfo',
   GET_AGENT_LIST: '/Guest/GetAgentList',
   GET_PLACES_BY_POSTCODE: '/Guest/GetPlacesByPostCode',
+  GET_HOTEL_BOOKING_CALENDAR: '/BookingCalendar/GetHotelBookingCalendar',
+  GET_RENTAL_BOOKING_CALENDAR: '/BookingCalendar/GetRentalBookingCalendar',
 
   // ----------Guest END POINTS---------- //
   GET_SAVED_LINK: 'SavedLinks/GetSavedLinks',
@@ -56,12 +59,21 @@ export const API_URL = Object.freeze({
   UPDATE_NEWS: '/News/UpdateNews',
   DELETE_NEWS: '/News/DeleteNews',
 
+  GET_COMMUNITIES: '/Communities/GetCommunities',
+  CREATE_COMMUNITIES: '/Communities/CreateCommunities',
+  UPDATE_COMMUNITIES: '/Communities/UpdateCommunities',
+  DELETE_COMMUNITIES: '/Communities/DeleteCommunities',
+  GET_COMMUNITY_MEMBER: '/Communities/GetCommunitiesMemberList',
+  UPDATE_COMMUNITY_MEMBER: '/Communities/UpdateCommunitiesMemberList',
+
   GET_GLOBAL_PARAMETERS: '/GlobalParameters/GetGlobalParameters',
+  GET_GLOBAL_PARAMETERS_BY_TYPE_CODES: '/GlobalParameters/GetGlobalParametersByTypeCodes',
   CREATE_GLOBAL_PARAMETERS: '/GlobalParameters/CreateGlobalParameters',
   UPDATE_GLOBAL_PARAMETERS: '/GlobalParameters/UpdateGlobalParameters',
   DELETE_GLOBAL_PARAMETERS: '/GlobalParameters/DeleteGlobalParameters',
 
   GET_PROPERTY_SETUP: '/SetProperties/GetProperty',
+  GET_PROPERTY_SETUP_LIST: '/SetProperties/GetPropertySetupList',
   CREATE_PROPERTY_SETUP: '/SetProperties/CreateProperty',
   UPDATE_PROPERTY_SETUP: '/SetProperties/UpdateProperty',
   DELETE_PROPERTY_SETUP: '/SetProperties/DeleteProperty',
@@ -70,6 +82,12 @@ export const API_URL = Object.freeze({
   CREATE_ROOM_DETAIL: '/Rooms/CreateRoom',
   UPDATE_ROOM_DETAIL: '/Rooms/UpdateRoom',
   DELETE_ROOM_DETAIL: '/Rooms/DeleteRoom',
+
+  GET_PRODUCT_SETUP: '/SetProducts/GetProduct',
+  GET_PRODUCT_SETUP_LIST: '/SetProducts/GetProductSetupList',
+  CREATE_PRODUCT_SETUP: '/SetProducts/CreateProduct',
+  UPDATE_PRODUCT_SETUP: '/SetProducts/UpdateProduct',
+  DELETE_PRODUCT_SETUP: '/SetProducts/DeleteProduct',
 
   // ----------Navigation ---------- //
   GET_NAV: '/Navbar/GetNavbar',

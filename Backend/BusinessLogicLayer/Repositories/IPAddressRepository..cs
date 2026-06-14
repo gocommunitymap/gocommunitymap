@@ -11,37 +11,38 @@ namespace BusinessLogicLayer.Repositories
 {
     public class IPAddressRepository:IIPAddressRepository
     {
+
+        private readonly ILogService _logService;
+        public IPAddressRepository(ILogService logService)
+        {
+            _logService = logService;
+        }
         public object GetLocalIPAddress()
         {
             try
             {
-                if (NetworkInterface.GetIsNetworkAvailable())
-                {
-                    var host = Dns.GetHostEntry(Dns.GetHostName());
-                    string[] list = new string[3];
-                    for (int i = 0; i < host.AddressList.Length; i++)
-                    {
-                        if (list.Length > i)
-                        {
-                            list[i] = host.AddressList[i].ToString();
-                        }
-                    }
-                    list[host.AddressList.Length] = host.HostName;
+                if (!NetworkInterface.GetIsNetworkAvailable())
+                    return new[] { "No network available!" };
 
-                    return list;
-                }
-                else
+                var host = Dns.GetHostEntry(Dns.GetHostName());
+
+                var result = new List<string>();
+
+                // Take max 2 IPs
+                for (int i = 0; i < host.AddressList.Length && result.Count < 2; i++)
                 {
-                    return "No network available!";
+                    result.Add(host.AddressList[i].ToString());
                 }
+
+                // Add hostname as last item (3rd max)
+                result.Add(host.HostName);
+
+                return result.ToArray();
             }
-            catch (Exception)
+            catch
             {
-
                 throw;
             }
-
-
         }
 
     }

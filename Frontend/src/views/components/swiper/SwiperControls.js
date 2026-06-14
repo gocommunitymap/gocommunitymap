@@ -46,8 +46,9 @@ const SwiperControls = ({ direction, data }) => {
                   position: 'relative' /* Establishes containing block for absolutely positioned child */
                 }}
               >
+                {/* src={`${row.LINK.replace('.webp', '.jpg')}`} */}
                 <img
-                  src={`${row.LINK.replace('.webp', '.jpg')}`}
+                  src={`${row.LINK}`}
                   alt='swiper 1'
                   style={{
                     height: '100%' /* Sets the image height to 100% of the container's height */,

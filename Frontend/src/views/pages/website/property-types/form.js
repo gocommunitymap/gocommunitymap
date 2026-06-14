@@ -1,7 +1,20 @@
-import { Grid, FormControl, TextField, Button, InputLabel, FormControlLabel, Switch } from '@mui/material'
+import {
+  Grid,
+  FormControl,
+  TextField,
+  Button,
+  InputLabel,
+  FormControlLabel,
+  Switch,
+  Select,
+  MenuItem,
+  Typography,
+  FormHelperText
+} from '@mui/material'
 import { Controller } from 'react-hook-form'
 import { Modal } from 'src/views/components'
 import { LoadingButton } from '@mui/lab'
+import { listingTypes } from 'src/configs'
 
 export const ModalForm = ({ control, states, handleDiscard, onSubmit, handleSubmit, errors, pageTitle }) => {
   return (
@@ -55,6 +68,42 @@ export const ModalForm = ({ control, states, handleDiscard, onSubmit, handleSubm
                       />
                     )}
                   />
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel shrink>LISTING TYPE</InputLabel>
+                  <Controller
+                    name='PARAMETER_CODE_4'
+                    control={control}
+                    rules={{
+                      required: true
+                    }}
+                    render={({ field: { value, onChange } }) => (
+                      <Select
+                        displayEmpty
+                        notched
+                        value={value ?? ''}
+                        sx={{ borderRadius: 1 }}
+                        onChange={onChange}
+                        label='LISTING TYPE'
+                        placeholder='PLEASE SELECT LISTING TYPE'
+                        size='small'
+                        error={Boolean(errors.PARAMETER_CODE_4)}
+                        helperText={Boolean(errors.PARAMETER_CODE_4) && 'Required'}
+                      >
+                        <MenuItem value=''>-- Select --</MenuItem>
+                        {Object.values(listingTypes).map(item => (
+                          <MenuItem key={item.LISTING_TYPE_ID} value={item.LISTING_TYPE_ID}>
+                            {item.LABEL}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                  <FormHelperText sx={{ color: 'error.main' }}>
+                    {Boolean(errors.PARAMETER_CODE_4) && 'Required'}
+                  </FormHelperText>
                 </FormControl>
               </Grid>
 

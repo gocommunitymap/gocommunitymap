@@ -91,13 +91,13 @@ const UserLayout = ({ guestGuard, children, contentHeightFixed }) => {
         location.pathname === '/' ||
         location.pathname === '/admin/bookings' ||
         location.pathname === '/admin/applicationsetup' ||
+        location.pathname === '/furniture-marketplace' ||
         location.pathname.startsWith('/account') ||
         location.pathname === '/saved' ||
         location.pathname === '/savedsearch' ||
-        location.pathname === '/hotels' ||
-        location.pathname === '/rental' ||
+        location.pathname.startsWith('/hotels') ||
+        location.pathname.startsWith('/rentals') ||
         location.pathname === '/payment' ||
-        location.pathname.includes('/website') ||
         location.pathname === '/home' ? (
         children
       ) : (

@@ -1,12 +1,16 @@
-export const dirPrefix = '/images/'
+export const dirPrefix = '/uploads/images/'
+
+import { Country } from 'country-state-city'
 
 const setPrefix = value => `${dirPrefix}${value}`
 
 export const FILE_DIRECTORIES = Object.freeze({
   PROPERTY: { WITH_PREFIX: setPrefix('properties/'), WITHOUT_PREFIX: 'properties/' },
+  PRODUCT: { WITH_PREFIX: setPrefix('products/'), WITHOUT_PREFIX: 'products/' },
   CONTENT: { WITH_PREFIX: setPrefix('properties/content/'), WITHOUT_PREFIX: 'properties/content/' },
   NEWS: { WITH_PREFIX: setPrefix('news/'), WITHOUT_PREFIX: 'news/' },
   AGENT: { WITH_PREFIX: setPrefix('agent/'), WITHOUT_PREFIX: 'agent/' },
+  COMMUNITIES: { WITH_PREFIX: setPrefix('communities/'), WITHOUT_PREFIX: 'communities/' },
   SECTIONS: { WITH_PREFIX: setPrefix('sections/'), WITHOUT_PREFIX: 'sections/' }
 })
 
@@ -42,6 +46,8 @@ export const GLOBAL_PARAMETER_TYPES = Object.freeze({
   PROPERTY_TYPE: 'PROPTYPE',
   RECEPTIONS: 'RECEP',
   RENTAL_FREQUENCY: 'RENTFREQ',
+  LETTING_ARRANGEMENTS: 'LETARNG',
+  LETTINGS_DEPOSIT: 'LETDEP',
   SITE_STATUS: 'SITESTS',
   SERVICE_TYPE: 'SERDETYPE',
   SUBSCRIPTION_TYPE: 'SUBCTYP',
@@ -54,6 +60,7 @@ export const GLOBAL_PARAMETER_TYPES = Object.freeze({
   ROOM_TYPE: 'ROOMTYPE',
   BED_TYPE: 'BEDTYPE',
   HOTEL_TYPE: 'HOTELTYPE',
+  HOTEL_FAQ: 'HOTELFAQ',
   TIME_SLOT: 'TIMESLOT',
   MEAL_PLAN: 'MEELPLAN',
   CANCELLATION_POLICY: 'CNCLPOLICY',
@@ -70,14 +77,20 @@ export const GLOBAL_PARAMETER_TYPES = Object.freeze({
   FILTER_FUNTHNG: 'FTR_FUNTHNG', // Hotel – Fun things to do (checkbox)
   FILTER_RNTDUR: 'FTR_RNTDUR', // Rental – Rental duration (checkbox)
   FILTER_PRCRNG: 'FTR_PRCRNG', // Rental – Price range (range — label only)
-  FILTER_PRPTYPE: 'FTR_PRPTYPE', // Rental – Property type (checkbox)
+  FILTER_PRPTYPE: 'PROPTYPE', // Rental – Property type (checkbox)
   FILTER_BDRM: 'FTR_BDRM', // Rental – Bedrooms (checkbox)
   FILTER_PRPSIZE: 'FTR_PRPSIZE', // Rental – Property size (range — label only)
   FILTER_AMNT: 'FTR_AMNT', // Rental – Amenities (checkbox)
   FILTER_PETS: 'FTR_PETS', // Rental – Pets allowed (switch)
-
+  APPLICATION_SETTING: 'APPSET',
   POPULAR_COUNTRY: 'COUNTRY',
-  POPULAR_REGION: 'REGION'
+  POPULAR_REGION: 'REGION',
+  POST_STATUS: 'POSTSTS',
+  PRODUCT_CATEGORY: 'PRDCAT',
+  PRODUCT_SUBCATEGORY: 'PRDSUBCAT',
+  SELLER_TYPE: 'SLRTYPE',
+  PRODUCT_CONDITION: 'PRDCON',
+  DELIVERY_OPTIONS: 'DLRYOPT'
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -164,250 +177,13 @@ export const BOOKING_STEPS = [
 // Guest Demographics – static option lists for multi-select fields
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const POPULAR_COUNTRIES = [
-  { value: 'AF', label: 'Afghanistan' },
-  { value: 'AL', label: 'Albania' },
-  { value: 'DZ', label: 'Algeria' },
-  { value: 'AS', label: 'American Samoa' },
-  { value: 'AD', label: 'Andorra' },
-  { value: 'AO', label: 'Angola' },
-  { value: 'AI', label: 'Anguilla' },
-  { value: 'AG', label: 'Antigua and Barbuda' },
-  { value: 'AR', label: 'Argentina' },
-  { value: 'AM', label: 'Armenia' },
-  { value: 'AW', label: 'Aruba' },
-  { value: 'AU', label: 'Australia' },
-  { value: 'AT', label: 'Austria' },
-  { value: 'AZ', label: 'Azerbaijan' },
-  { value: 'BS', label: 'Bahamas' },
-  { value: 'BH', label: 'Bahrain' },
-  { value: 'BD', label: 'Bangladesh' },
-  { value: 'BB', label: 'Barbados' },
-  { value: 'BY', label: 'Belarus' },
-  { value: 'BE', label: 'Belgium' },
-  { value: 'BZ', label: 'Belize' },
-  { value: 'BJ', label: 'Benin' },
-  { value: 'BM', label: 'Bermuda' },
-  { value: 'BT', label: 'Bhutan' },
-  { value: 'BO', label: 'Bolivia' },
-  { value: 'BA', label: 'Bosnia and Herzegovina' },
-  { value: 'BW', label: 'Botswana' },
-  { value: 'BR', label: 'Brazil' },
-  { value: 'IO', label: 'British Indian Ocean Territory' },
-  { value: 'VG', label: 'British Virgin Islands' },
-  { value: 'BN', label: 'Brunei' },
-  { value: 'BG', label: 'Bulgaria' },
-  { value: 'BF', label: 'Burkina Faso' },
-  { value: 'BI', label: 'Burundi' },
-  { value: 'KH', label: 'Cambodia' },
-  { value: 'CM', label: 'Cameroon' },
-  { value: 'CA', label: 'Canada' },
-  { value: 'CV', label: 'Cape Verde' },
-  { value: 'KY', label: 'Cayman Islands' },
-  { value: 'CF', label: 'Central African Republic' },
-  { value: 'TD', label: 'Chad' },
-  { value: 'CL', label: 'Chile' },
-  { value: 'CN', label: 'China' },
-  { value: 'CX', label: 'Christmas Island' },
-  { value: 'CC', label: 'Cocos Islands' },
-  { value: 'CO', label: 'Colombia' },
-  { value: 'KM', label: 'Comoros' },
-  { value: 'CK', label: 'Cook Islands' },
-  { value: 'CR', label: 'Costa Rica' },
-  { value: 'HR', label: 'Croatia' },
-  { value: 'CU', label: 'Cuba' },
-  { value: 'CW', label: 'Curacao' },
-  { value: 'CY', label: 'Cyprus' },
-  { value: 'CZ', label: 'Czech Republic' },
-  { value: 'CD', label: 'DR Congo' },
-  { value: 'DK', label: 'Denmark' },
-  { value: 'DJ', label: 'Djibouti' },
-  { value: 'DM', label: 'Dominica' },
-  { value: 'DO', label: 'Dominican Republic' },
-  { value: 'EC', label: 'Ecuador' },
-  { value: 'EG', label: 'Egypt' },
-  { value: 'SV', label: 'El Salvador' },
-  { value: 'GQ', label: 'Equatorial Guinea' },
-  { value: 'ER', label: 'Eritrea' },
-  { value: 'EE', label: 'Estonia' },
-  { value: 'SZ', label: 'Eswatini' },
-  { value: 'ET', label: 'Ethiopia' },
-  { value: 'FK', label: 'Falkland Islands' },
-  { value: 'FO', label: 'Faroe Islands' },
-  { value: 'FJ', label: 'Fiji' },
-  { value: 'FI', label: 'Finland' },
-  { value: 'FR', label: 'France' },
-  { value: 'GF', label: 'French Guiana' },
-  { value: 'PF', label: 'French Polynesia' },
-  { value: 'GA', label: 'Gabon' },
-  { value: 'GM', label: 'Gambia' },
-  { value: 'GE', label: 'Georgia' },
-  { value: 'DE', label: 'Germany' },
-  { value: 'GH', label: 'Ghana' },
-  { value: 'GI', label: 'Gibraltar' },
-  { value: 'GR', label: 'Greece' },
-  { value: 'GL', label: 'Greenland' },
-  { value: 'GD', label: 'Grenada' },
-  { value: 'GP', label: 'Guadeloupe' },
-  { value: 'GU', label: 'Guam' },
-  { value: 'GT', label: 'Guatemala' },
-  { value: 'GG', label: 'Guernsey' },
-  { value: 'GN', label: 'Guinea' },
-  { value: 'GW', label: 'Guinea-Bissau' },
-  { value: 'GY', label: 'Guyana' },
-  { value: 'HT', label: 'Haiti' },
-  { value: 'HN', label: 'Honduras' },
-  { value: 'HK', label: 'Hong Kong' },
-  { value: 'HU', label: 'Hungary' },
-  { value: 'IS', label: 'Iceland' },
-  { value: 'IN', label: 'India' },
-  { value: 'ID', label: 'Indonesia' },
-  { value: 'IR', label: 'Iran' },
-  { value: 'IQ', label: 'Iraq' },
-  { value: 'IE', label: 'Ireland' },
-  { value: 'IM', label: 'Isle of Man' },
-  { value: 'IL', label: 'Israel' },
-  { value: 'IT', label: 'Italy' },
-  { value: 'CI', label: 'Ivory Coast' },
-  { value: 'JM', label: 'Jamaica' },
-  { value: 'JP', label: 'Japan' },
-  { value: 'JE', label: 'Jersey' },
-  { value: 'JO', label: 'Jordan' },
-  { value: 'KZ', label: 'Kazakhstan' },
-  { value: 'KE', label: 'Kenya' },
-  { value: 'KI', label: 'Kiribati' },
-  { value: 'XK', label: 'Kosovo' },
-  { value: 'KW', label: 'Kuwait' },
-  { value: 'KG', label: 'Kyrgyzstan' },
-  { value: 'LA', label: 'Laos' },
-  { value: 'LV', label: 'Latvia' },
-  { value: 'LB', label: 'Lebanon' },
-  { value: 'LS', label: 'Lesotho' },
-  { value: 'LR', label: 'Liberia' },
-  { value: 'LY', label: 'Libya' },
-  { value: 'LI', label: 'Liechtenstein' },
-  { value: 'LT', label: 'Lithuania' },
-  { value: 'LU', label: 'Luxembourg' },
-  { value: 'MO', label: 'Macau' },
-  { value: 'MG', label: 'Madagascar' },
-  { value: 'MW', label: 'Malawi' },
-  { value: 'MY', label: 'Malaysia' },
-  { value: 'MV', label: 'Maldives' },
-  { value: 'ML', label: 'Mali' },
-  { value: 'MT', label: 'Malta' },
-  { value: 'MH', label: 'Marshall Islands' },
-  { value: 'MQ', label: 'Martinique' },
-  { value: 'MR', label: 'Mauritania' },
-  { value: 'MU', label: 'Mauritius' },
-  { value: 'YT', label: 'Mayotte' },
-  { value: 'MX', label: 'Mexico' },
-  { value: 'FM', label: 'Micronesia' },
-  { value: 'MD', label: 'Moldova' },
-  { value: 'MC', label: 'Monaco' },
-  { value: 'MN', label: 'Mongolia' },
-  { value: 'ME', label: 'Montenegro' },
-  { value: 'MS', label: 'Montserrat' },
-  { value: 'MA', label: 'Morocco' },
-  { value: 'MZ', label: 'Mozambique' },
-  { value: 'MM', label: 'Myanmar' },
-  { value: 'NA', label: 'Namibia' },
-  { value: 'NR', label: 'Nauru' },
-  { value: 'NP', label: 'Nepal' },
-  { value: 'NL', label: 'Netherlands' },
-  { value: 'NC', label: 'New Caledonia' },
-  { value: 'NZ', label: 'New Zealand' },
-  { value: 'NI', label: 'Nicaragua' },
-  { value: 'NE', label: 'Niger' },
-  { value: 'NG', label: 'Nigeria' },
-  { value: 'NU', label: 'Niue' },
-  { value: 'NF', label: 'Norfolk Island' },
-  { value: 'KP', label: 'North Korea' },
-  { value: 'MK', label: 'North Macedonia' },
-  { value: 'MP', label: 'Northern Mariana Islands' },
-  { value: 'NO', label: 'Norway' },
-  { value: 'OM', label: 'Oman' },
-  { value: 'PK', label: 'Pakistan' },
-  { value: 'PW', label: 'Palau' },
-  { value: 'PS', label: 'Palestine' },
-  { value: 'PA', label: 'Panama' },
-  { value: 'PG', label: 'Papua New Guinea' },
-  { value: 'PY', label: 'Paraguay' },
-  { value: 'PE', label: 'Peru' },
-  { value: 'PH', label: 'Philippines' },
-  { value: 'PN', label: 'Pitcairn Islands' },
-  { value: 'PL', label: 'Poland' },
-  { value: 'PT', label: 'Portugal' },
-  { value: 'PR', label: 'Puerto Rico' },
-  { value: 'QA', label: 'Qatar' },
-  { value: 'CG', label: 'Republic of the Congo' },
-  { value: 'RE', label: 'Reunion' },
-  { value: 'RO', label: 'Romania' },
-  { value: 'RU', label: 'Russia' },
-  { value: 'RW', label: 'Rwanda' },
-  { value: 'BL', label: 'Saint Barthelemy' },
-  { value: 'SH', label: 'Saint Helena' },
-  { value: 'KN', label: 'Saint Kitts and Nevis' },
-  { value: 'LC', label: 'Saint Lucia' },
-  { value: 'MF', label: 'Saint Martin' },
-  { value: 'PM', label: 'Saint Pierre and Miquelon' },
-  { value: 'VC', label: 'Saint Vincent and the Grenadines' },
-  { value: 'WS', label: 'Samoa' },
-  { value: 'SM', label: 'San Marino' },
-  { value: 'ST', label: 'Sao Tome and Principe' },
-  { value: 'SA', label: 'Saudi Arabia' },
-  { value: 'SN', label: 'Senegal' },
-  { value: 'RS', label: 'Serbia' },
-  { value: 'SC', label: 'Seychelles' },
-  { value: 'SL', label: 'Sierra Leone' },
-  { value: 'SG', label: 'Singapore' },
-  { value: 'SX', label: 'Sint Maarten' },
-  { value: 'SK', label: 'Slovakia' },
-  { value: 'SI', label: 'Slovenia' },
-  { value: 'SB', label: 'Solomon Islands' },
-  { value: 'SO', label: 'Somalia' },
-  { value: 'ZA', label: 'South Africa' },
-  { value: 'KR', label: 'South Korea' },
-  { value: 'SS', label: 'South Sudan' },
-  { value: 'ES', label: 'Spain' },
-  { value: 'LK', label: 'Sri Lanka' },
-  { value: 'SD', label: 'Sudan' },
-  { value: 'SR', label: 'Suriname' },
-  { value: 'SJ', label: 'Svalbard and Jan Mayen' },
-  { value: 'SE', label: 'Sweden' },
-  { value: 'CH', label: 'Switzerland' },
-  { value: 'SY', label: 'Syria' },
-  { value: 'TW', label: 'Taiwan' },
-  { value: 'TJ', label: 'Tajikistan' },
-  { value: 'TZ', label: 'Tanzania' },
-  { value: 'TH', label: 'Thailand' },
-  { value: 'TL', label: 'Timor-Leste' },
-  { value: 'TG', label: 'Togo' },
-  { value: 'TK', label: 'Tokelau' },
-  { value: 'TO', label: 'Tonga' },
-  { value: 'TT', label: 'Trinidad and Tobago' },
-  { value: 'TN', label: 'Tunisia' },
-  { value: 'TR', label: 'Turkey' },
-  { value: 'TM', label: 'Turkmenistan' },
-  { value: 'TC', label: 'Turks and Caicos Islands' },
-  { value: 'TV', label: 'Tuvalu' },
-  { value: 'VI', label: 'US Virgin Islands' },
-  { value: 'UG', label: 'Uganda' },
-  { value: 'UA', label: 'Ukraine' },
-  { value: 'AE', label: 'United Arab Emirates' },
-  { value: 'GB', label: 'United Kingdom' },
-  { value: 'US', label: 'United States' },
-  { value: 'UY', label: 'Uruguay' },
-  { value: 'UZ', label: 'Uzbekistan' },
-  { value: 'VU', label: 'Vanuatu' },
-  { value: 'VA', label: 'Vatican City' },
-  { value: 'VE', label: 'Venezuela' },
-  { value: 'VN', label: 'Vietnam' },
-  { value: 'WF', label: 'Wallis and Futuna' },
-  { value: 'EH', label: 'Western Sahara' },
-  { value: 'YE', label: 'Yemen' },
-  { value: 'ZM', label: 'Zambia' },
-  { value: 'ZW', label: 'Zimbabwe' }
-]
+// All countries driven by the country-state-city library (isoCode → value, name → label).
+// CA (Canada) is marked default for pre-selecting in booking forms.
+export const POPULAR_COUNTRIES = Country.getAllCountries().map(c => ({
+  value: c.isoCode,
+  label: c.name,
+  ...(c.isoCode === 'CA' ? { default: true } : {})
+}))
 
 export const POPULAR_REGIONS = [
   { value: 'western-europe', label: 'Western Europe' },
@@ -434,7 +210,7 @@ export const POPULAR_REGIONS = [
 export const landingTabs = [
   { id: 'community', label: 'Go Community Map', route: '/community-map', icon: 'tabler:map-pin' },
   { id: 'hotels', label: 'Hotels', route: '/newhome/properties', icon: 'tabler:building-skyscraper' },
-  { id: 'rentals', label: 'Rentals', route: '/rental/properties', icon: 'tabler:home' },
+  { id: 'rentals', label: 'Rentals', route: '/rentals/properties', icon: 'tabler:home' },
   { id: 'furniture', label: 'Furniture place', route: '/furniture-marketplace', icon: 'tabler:armchair-2' }
 ]
 
@@ -445,18 +221,10 @@ export const landingSearchFields = [
   { id: 'guests', label: 'Guests', value: '2', icon: 'tabler:users' }
 ]
 
-export const landingCountries = [
-  'United States',
-  'United Kingdom',
-  'Canada',
-  'Australia',
-  'Japan',
-  'Singapore',
-  'United Arab Emirates',
-  'Germany',
-  'France',
-  'India'
-]
+// Library-driven: country names resolved from country-state-city ISO codes
+export const landingCountries = ['US', 'GB', 'CA', 'AU', 'JP', 'SG', 'AE', 'DE', 'FR', 'IN']
+  .map(code => Country.getCountryByCode(code)?.name)
+  .filter(Boolean)
 
 export const landingLocations = [
   { id: 'hyderabad-pk', city: 'Hyderabad', region: 'Sindh', country: 'Pakistan' },
@@ -480,31 +248,46 @@ export const hotelFilterConfig = [
     counters: [
       { id: 'bedrooms', label: 'Bedrooms', value: 0, min: 0 },
       { id: 'bathrooms', label: 'Bathrooms', value: 0, min: 0 }
-    ]
+    ],
+    isDeletable: true,
+    isEditable: true,
+    isAddable: true
   },
   {
     id: 'budget',
     typeCode: 'FTR_BUDGET',
     title: 'Your Budget (Per Night)',
-    type: 'radio'
+    type: 'radio',
+    isDeletable: true,
+    isEditable: true,
+    isAddable: true
   },
   {
     id: 'review-score',
     typeCode: 'FTR_REVSCR',
     title: 'Review Score',
-    type: 'radio'
+    type: 'radio',
+    isDeletable: true,
+    isEditable: true,
+    isAddable: true
   },
   {
     id: 'room-facilities',
     typeCode: 'FTR_RMFAC',
     title: 'Room Facilities',
-    type: 'checkbox'
+    type: 'checkbox',
+    isDeletable: true,
+    isEditable: true,
+    isAddable: true
   },
   {
     id: 'fun-things',
     typeCode: 'FTR_FUNTHNG',
     title: 'Fun Things to Do',
-    type: 'checkbox'
+    type: 'checkbox',
+    isDeletable: true,
+    isEditable: true,
+    isAddable: true
   }
 ]
 
@@ -514,10 +297,10 @@ export const rentalFilterConfig = [
     typeCode: 'FTR_RNTDUR',
     title: 'Rental Duration',
     type: 'checkbox',
-    options: [
-      { id: 'short-term', label: 'Short-term (Daily rent)' },
-      { id: 'long-term', label: 'Long-term (Monthly rent)' }
-    ]
+    options: [{ id: 'none', label: 'None' }],
+    isDeletable: true,
+    isEditable: true,
+    isAddable: true
   },
   {
     id: 'price-range',
@@ -527,29 +310,32 @@ export const rentalFilterConfig = [
     min: 50,
     max: 500,
     value: [50, 500],
-    unitPrefix: '$'
+    unitPrefix: '$',
+    isDeletable: false,
+    isEditable: true,
+    isAddable: true
   },
   {
     id: 'property-type',
-    typeCode: 'FTR_PRPTYPE',
+    typeCode: 'PROPTYPE',
     title: 'Property Type',
     type: 'checkbox',
-    options: [
-      { id: 'houses', label: 'Houses' },
-      { id: 'apartments', label: 'Apartments' }
-    ]
+    options: [{ id: 'none', label: 'None' }],
+    isDeletable: false,
+    isEditable: false,
+    isAddable: false
   },
   {
-    id: 'bedrooms',
+    id: 'rental_bedrooms',
     typeCode: 'FTR_BDRM',
     title: 'Bedrooms',
-    type: 'checkbox',
-    options: [
-      { id: '1-bed', label: '1 Bedroom' },
-      { id: '2-bed', label: '2 Bedrooms' },
-      { id: '3-bed', label: '3 Bedrooms' },
-      { id: '4-bed', label: '4 Bedrooms' }
-    ]
+    type: 'range',
+    min: 1,
+    max: 4,
+    value: [1, 4],
+    isDeletable: false,
+    isEditable: true,
+    isAddable: true
   },
   {
     id: 'property-size',
@@ -558,32 +344,20 @@ export const rentalFilterConfig = [
     type: 'range',
     min: 500,
     max: 2500,
-    value: [500, 2500]
+    value: [500, 2500],
+    isDeletable: true,
+    isEditable: true,
+    isAddable: true
   },
   {
     id: 'amenities',
     typeCode: 'FTR_AMNT',
     title: 'Amenities',
     type: 'checkbox',
-    options: [
-      { id: 'wifi', label: 'Free WiFi' },
-      { id: 'kitchen', label: 'Kitchen' },
-      { id: 'washer', label: 'Washer' },
-      { id: 'dryer', label: 'Dryer' },
-      { id: 'aircon', label: 'Air conditioning' },
-      { id: 'heating', label: 'Heating' },
-      { id: 'workspace', label: 'Dedicated workspace' },
-      { id: 'tv', label: 'TV' },
-      { id: 'hairdryer', label: 'Hair dryer' },
-      { id: 'iron', label: 'Iron' }
-    ]
-  },
-  {
-    id: 'pets',
-    typeCode: 'FTR_PETS',
-    title: 'Pets Allowed',
-    type: 'switch',
-    defaultChecked: true
+    options: [{ id: 'none', label: 'None' }],
+    isDeletable: false,
+    isEditable: true,
+    isAddable: true
   }
 ]
 
@@ -1202,4 +976,20 @@ export const arrivalTimeOptions = [
   '6:00 PM – 8:00 PM',
   '8:00 PM – 10:00 PM',
   'After 10:00 PM'
+]
+
+export const SELLER_TYPES = [
+  { value: 1, title: 'Individual' },
+  { value: 2, title: 'Business' }
+]
+
+export const CONDITIONS = [
+  { value: 1, title: 'New' },
+  { value: 2, title: 'Like New' },
+  { value: 3, title: 'Used' }
+]
+
+export const DELIVERY_OPTIONS = [
+  { value: 1, title: 'Shipping' },
+  { value: 2, title: 'Local Pickup' }
 ]

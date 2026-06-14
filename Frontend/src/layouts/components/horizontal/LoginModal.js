@@ -9,11 +9,12 @@ import {
   IconButton,
   InputAdornment,
   Link as MuiLink,
+  Slide,
   TextField,
   Typography
 } from '@mui/material'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import * as yup from 'yup'
 import toast from 'react-hot-toast'
 import { Controller, useForm } from 'react-hook-form'
@@ -22,6 +23,8 @@ import IconifyIcon from 'src/@core/components/icon'
 import { useAuth } from 'src/hooks/useAuth'
 
 import { defaultPageFont } from 'src/@core/utils'
+
+const SlideDown = forwardRef((props, ref) => <Slide direction='down' ref={ref} {...props} />)
 
 const schema = yup.object().shape({
   email: yup.string().email().required(),
@@ -33,9 +36,9 @@ const defaultValues = {
   password: ''
 }
 
-const LoginModal = ({ fullWidth = false }) => {
+const LoginModal = ({ fullWidth = false, isDirectOpen = false, callBack = () => {} }) => {
   const auth = useAuth()
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(isDirectOpen)
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -60,6 +63,10 @@ const LoginModal = ({ fullWidth = false }) => {
     reset(defaultValues)
   }, [auth?.user?.usercode, isOpen, reset])
 
+  useEffect(() => {
+    if (isDirectOpen) setIsOpen(true)
+  }, [isDirectOpen])
+
   const handleOpen = () => {
     setIsOpen(true)
   }
@@ -68,6 +75,7 @@ const LoginModal = ({ fullWidth = false }) => {
     setIsOpen(false)
     setIsLoading(false)
     reset(defaultValues)
+    callBack()
   }
 
   const onSubmit = data => {
@@ -82,7 +90,7 @@ const LoginModal = ({ fullWidth = false }) => {
       clearTimeout(safetyTimer)
       if (error?.response?.data?.error) {
         toast.error(error.response.data.error, {
-          position: 'top-right',
+          position: 'top-center',
           duration: 5000,
           style: { border: 'solid red 1px' }
         })
@@ -123,11 +131,14 @@ const LoginModal = ({ fullWidth = false }) => {
         onClose={handleClose}
         fullWidth
         maxWidth='sm'
+        TransitionComponent={SlideDown}
+        transitionDuration={{ enter: 500, exit: 300 }}
         PaperProps={{
           sx: {
             width: { xs: 'calc(100% - 24px)', sm: 520 },
             borderRadius: 3,
-            overflow: 'hidden'
+            overflow: 'hidden',
+            minHeight: 350
           }
         }}
       >

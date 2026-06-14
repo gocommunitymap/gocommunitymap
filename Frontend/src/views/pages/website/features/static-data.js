@@ -5,7 +5,7 @@ import { getActiveProps } from 'src/@core/utils'
 export const columns = [
   { minWidth: 120, headerName: 'FEATURES ID', field: 'FEATURES_ID' },
   { minWidth: 200, headerName: 'FEATURE TYPE', field: 'FEATURES_TYPE' },
-  { minWidth: 140, headerName: 'ALLOWED IN', field: 'ALLOWED' },
+  { minWidth: 170, headerName: 'ALLOWED IN', field: 'ALLOWED' },
   { flex: 1, minWidth: 250, headerName: 'FEATURE NAME', field: 'FEATURES' },
   {
     minWidth: 120,

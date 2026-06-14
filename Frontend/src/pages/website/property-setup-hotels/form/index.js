@@ -17,7 +17,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import DataGridHeaderToolbar from 'src/views/table/data-grid/DataGridHeaderToolbar'
 import Icon from 'src/@core/components/icon'
 import { useForm } from 'react-hook-form'
-import { getPropertySetupHotels, updatePropertySetupHotels, deletePropertySetupHotels } from 'src/store'
+import { updatePropertySetupHotels, deletePropertySetupHotels } from 'src/store'
 import { toast } from 'react-hot-toast'
 import { columns } from 'src/views/pages/website/property-setup-hotels/static-data'
 import { dateConvert, getActiveProps, handleSearch, isAllowed } from 'src/@core/utils'
@@ -47,6 +47,9 @@ const defaultValues = {
   LATITUDE: '',
   LONGITUDE: '',
   PLACE: '',
+  COUNTRY: '',
+  PROVINCE: '',
+  CITY: '',
   MAP_URL: '',
   CURRENT_ERR_RATING: null,
   POTENTIAL_ERR_RATING: null,
@@ -55,8 +58,8 @@ const defaultValues = {
   CREATED_ON: null,
   STAR_RATING: null,
   HOTEL_TYPE: null,
-  CHECK_IN_TIME: null,
-  CHECK_OUT_TIME: null,
+  CHECK_IN_TIMESLOT_DESC: null,
+  CHECK_OUT_TIMESLOT_DESC: null,
   AGENT_NAME: '',
   AGENT_BIO: '',
   IMPORTANT_INFO: '',
@@ -123,6 +126,9 @@ const Form = () => {
     setValue('LATITUDE', row.LATITUDE)
     setValue('LONGITUDE', row.LONGITUDE)
     setValue('PLACE', row.PLACE)
+    setValue('COUNTRY', row.COUNTRY)
+    setValue('PROVINCE', row.PROVINCE)
+    setValue('CITY', row.CITY)
     setPLACE(row.PLACE)
     setValue('MAP_URL', row.MAP_URL)
     setValue('CURRENT_ERR_RATING', row.CURRENT_ERR_RATING)
@@ -140,8 +146,8 @@ const Form = () => {
     setCUSTOM_FEATURES(row.CUSTOM_FEATURES?.length > 0 ? JSON.parse(row.CUSTOM_FEATURES) : [])
     setValue('STAR_RATING', row.STAR_RATING ?? null)
     setValue('HOTEL_TYPE', row.HOTEL_TYPE ?? null)
-    setValue('CHECK_IN_TIME', row.CHECK_IN_TIME ?? null)
-    setValue('CHECK_OUT_TIME', row.CHECK_OUT_TIME ?? null)
+    setValue('CHECK_IN_TIMESLOT_DESC', row.CHECK_IN_TIME ?? null)
+    setValue('CHECK_OUT_TIMESLOT_DESC', row.CHECK_OUT_TIME ?? null)
     setValue('AGENT_NAME', row.AGENT_NAME ?? null)
     setValue('AGENT_BIO', row.AGENT_BIO ?? null)
     setValue('IMPORTANT_INFO', row.IMPORTANT_INFO ?? null)
@@ -149,9 +155,6 @@ const Form = () => {
     setValue('FULLDESCRIPTION', row.FULLDESCRIPTION ?? '')
     setValue('POPULAR_COUNTRIES', row.POPULAR_COUNTRIES?.length > 0 ? row.POPULAR_COUNTRIES.split(',') : [])
     setValue('POPULAR_REGIONS', row.POPULAR_REGIONS?.length > 0 ? row.POPULAR_REGIONS.split(',') : [])
-
-    console.log('JSON.parse(row.NEARBY_PLACES)', JSON.parse(row.NEARBY_PLACES))
-
     setNEARBY_PLACES(
       row.NEARBY_PLACES?.length > 0
         ? JSON.parse(row.NEARBY_PLACES)
@@ -253,11 +256,15 @@ const Form = () => {
     setValue('LATITUDE', 51.5014)
     setValue('LONGITUDE', -0.1419)
     setValue('PLACE', 'London, United Kingdom')
+    setValue('COUNTRY', 'United Kingdom')
+    setValue('PROVINCE', 'England')
+    setValue('CITY', 'London')
     setPLACE('London, United Kingdom')
+    setValue('MAP_URL', 'https://maps.google.com/?q=51.5014,-0.1419')
     setValue('STAR_RATING', 5)
     setValue('HOTEL_TYPE', 'Luxury Hotel')
-    setValue('CHECK_IN_TIME', '3:00 PM')
-    setValue('CHECK_OUT_TIME', '11:00 AM')
+    setValue('CHECK_IN_TIMESLOT_DESC', 1)
+    setValue('CHECK_OUT_TIMESLOT_DESC', 2)
     setValue('AGENT_NAME', 'James Hartley')
     setValue(
       'AGENT_BIO',
@@ -282,6 +289,66 @@ const Form = () => {
       { CUSTOM_FEATURES_ID: 3, DESCRIPTION: 'Michelin-Star In-House Restaurant', PROPERTY_ID: 0 },
       { CUSTOM_FEATURES_ID: 4, DESCRIPTION: '24-Hour Butler Service', PROPERTY_ID: 0 }
     ])
+    setValue(
+      'SUMMARY',
+      'A breathtaking 5-star luxury hotel in the heart of Westminster, minutes from Buckingham Palace. Featuring world-class dining, a rooftop infinity pool, and impeccable service in the finest London tradition.'
+    )
+    setValue(
+      'FULLDESCRIPTION',
+      "The Grand Palace Hotel stands as a landmark of elegance and sophistication in the heart of London's Westminster district. Each of our 180 exquisitely appointed rooms and suites offers panoramic views of the city skyline, finished with hand-picked furnishings and the latest smart-room technology. Our award-winning restaurant, helmed by a Michelin-starred chef, serves contemporary British cuisine using locally sourced seasonal ingredients. Guests enjoy exclusive access to our rooftop infinity pool and full-service spa, personal butler service, and a private members lounge. Ideally located for both leisure and business travellers, The Grand Palace is mere steps from Buckingham Palace, Hyde Park, and Victoria Station, with direct transport links across the capital."
+    )
+    setValue('CURRENT_ERR_RATING', 'C')
+    setValue('POTENTIAL_ERR_RATING', 'B')
+    setValue('POPULAR_COUNTRIES', ['United Kingdom'])
+    setValue('POPULAR_REGIONS', ['London'])
+    setPROPERTY_FAQS([
+      {
+        FAQ_ID: null,
+        QUESTION: 'What are the check-in and check-out times?',
+        ANSWER:
+          'Check-in is available from CHECK_IN_TIMESLOT_DESC and check-out is by CHECK_OUT_TIMESLOT_DESC. Early check-in and late check-out can be arranged subject to availability — please contact us in advance.'
+      },
+      {
+        FAQ_ID: null,
+        QUESTION: 'Is breakfast included?',
+        ANSWER:
+          'A full English and continental breakfast is available in our restaurant daily from 7:00 AM to 11:00 AM. Breakfast packages can be added at the time of booking or at check-in.'
+      },
+      {
+        FAQ_ID: null,
+        QUESTION: 'Is parking available?',
+        ANSWER:
+          'Valet parking is available at £45 per night. The nearest public car park is 200m from the hotel. Please note the hotel is located within the London ULEZ zone.'
+      },
+      {
+        FAQ_ID: null,
+        QUESTION: 'Is the hotel pet-friendly?',
+        ANSWER:
+          'We welcome well-behaved dogs (up to 15 kg) in our standard rooms at a supplement of £30 per night. Guide dogs are welcome at no extra charge.'
+      }
+    ])
+    setPROPERTY_RULES([
+      {
+        RULE_ID: null,
+        RULE: 'No Smoking',
+        NOTE: 'Smoking is strictly prohibited in all indoor areas including rooms, corridors, and the restaurant. A designated outdoor smoking area is available near the main entrance.'
+      },
+      {
+        RULE_ID: null,
+        RULE: 'Quiet Hours',
+        NOTE: 'We ask all guests to observe quiet hours between 10:00 PM and 7:00 AM out of respect for other guests.'
+      },
+      {
+        RULE_ID: null,
+        RULE: 'Damage Policy',
+        NOTE: 'Guests are liable for any damage caused to the room or hotel property during their stay. A pre-authorisation hold will be placed on your card at check-in.'
+      },
+      {
+        RULE_ID: null,
+        RULE: 'ID Required',
+        NOTE: 'Valid photo identification is required for all guests at check-in. We accept passports and national identity cards.'
+      }
+    ])
     toast.success('Sample data loaded — review and adjust before saving', { position: 'top-center', duration: 4000 })
   }
 
@@ -292,7 +359,7 @@ const Form = () => {
         data: {
           PROPERTY_ID: data.PROPERTY_ID,
           SITE_STATUS_ID: data.SITE_STATUS_ID?.value,
-          LISTING_STATUS_ID: 1, //data.LISTING_STATUS_ID?.value || null,
+          LISTING_STATUS_ID: listingTypes.HOTELS.LISTING_TYPE_ID, //data.LISTING_STATUS_ID?.value || null,
           FULLPOSTCODE: data.FULLPOSTCODE,
           PROPERTY_NUM_NAME: data.PROPERTY_NUM_NAME,
           STREET_NAME: data.STREET_NAME,
@@ -301,6 +368,9 @@ const Form = () => {
           LATITUDE: data.LATITUDE,
           LONGITUDE: data.LONGITUDE,
           PLACE,
+          COUNTRY: data.COUNTRY,
+          PROVINCE: data.PROVINCE,
+          CITY: data.CITY,
           MAP_URL: data.MAP_URL,
           CURRENT_ERR_RATING: data.CURRENT_ERR_RATING || null,
           POTENTIAL_ERR_RATING: data.POTENTIAL_ERR_RATING || null,
@@ -331,8 +401,8 @@ const Form = () => {
           ACTIVE: data.ACTIVE,
           STAR_RATING: data.STAR_RATING || null,
           HOTEL_TYPE: data.HOTEL_TYPE || null,
-          CHECK_IN_TIME: data.CHECK_IN_TIME || null,
-          CHECK_OUT_TIME: data.CHECK_OUT_TIME || null,
+          CHECK_IN_TIME: data.CHECK_IN_TIMESLOT_DESC || null,
+          CHECK_OUT_TIME: data.CHECK_OUT_TIMESLOT_DESC || null,
           AGENT_NAME: data.AGENT_NAME || null,
           AGENT_BIO: data.AGENT_BIO || null,
           IMPORTANT_INFO: data.IMPORTANT_INFO || null,

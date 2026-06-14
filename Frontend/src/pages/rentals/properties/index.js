@@ -71,7 +71,7 @@ import BreadCrumbs from 'src/views/components/breadcrumbs'
 import { useRouter } from 'next/router'
 import FallbackSpinner from 'src/@core/components/spinner'
 import LinkSaveButton from 'src/views/components/buttons/link-save-button'
-import { countryISO, getGlobalParametersLOV } from 'src/@core/utils'
+import { countryISO, getGlobalParametersGroupsLOV, getOptionsByTypeCode, GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
 import { useAuth } from 'src/hooks/useAuth'
 import { PropertyCardRental } from 'src/views/components/cards/property-card-rental'
 
@@ -80,7 +80,7 @@ const pageTitle = 'Properties'
 
 const linkList = [
   { title: 'Home', link: '/home' },
-  { title: 'Rental', link: '/rental' }
+  { title: 'Rental', link: '/rentals' }
 ]
 
 const FilterBar = ({ setIsDrawerOpen, filteredCount, clearFIlter }) => {
@@ -130,13 +130,7 @@ const FilterBar = ({ setIsDrawerOpen, filteredCount, clearFIlter }) => {
             <Grid container>
               <Grid item xs={12} md={8}>
                 {isLoaded ? (
-                  <GAutocomplete
-                    options={{
-                      componentRestrictions: { country: countryISO }
-                    }}
-                    onPlaceChanged={onPlaceChanged}
-                    onLoad={onLoad}
-                  >
+                  <GAutocomplete onPlaceChanged={onPlaceChanged} onLoad={onLoad}>
                     <TextField
                       id='location'
                       size='small'
@@ -734,42 +728,34 @@ const Properties = ({ initialProperties = [] }) => {
   const [furnishedOptions, setFurnishedOptions] = useState([])
   const [propertyTypesOptions, setPropertyTypesOptions] = useState([])
 
-  const setPropertyType = async () => {
-    const data = await getGlobalParametersLOV('PROPTYPE')
+  const loadFilterOptions = async () => {
+    const globalParametersLOVData = await getGlobalParametersGroupsLOV(
+      `${GLOBAL_PARAMETER_TYPES.PROPERTY_TYPE},${GLOBAL_PARAMETER_TYPES.BEDROOMS},${GLOBAL_PARAMETER_TYPES.FURNISHED}`
+    )
 
-    //Bind Property Type List
-    let options = [{ value: 0, label: 'Show All' }, ...(Array.isArray(data) ? data : [])]
+    const propertyTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.PROPERTY_TYPE)
+    const bedrooms = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.BEDROOMS)
+    const furnished = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.FURNISHED)
 
-    if (data?.length > 0) {
+    if (propertyTypes?.length > 0) {
+      const options = [{ value: 0, label: 'Show All' }, ...propertyTypes]
       setPropertyTypesOptions(options)
     }
-  }
 
-  const setBedrooms = async () => {
-    const data = await getGlobalParametersLOV('BEDROOMS')
-
-    //Bind Bedrooms List
-    if (data?.length > 0) {
-      let options = [{ value: '0', label: 'No Limit' }, ...(Array.isArray(data) ? data : [])]
+    if (bedrooms?.length > 0) {
+      const options = [{ value: '0', label: 'No Limit' }, ...bedrooms]
       setBedsOptions(options)
     }
-  }
 
-  const setFurnished = async () => {
-    const data = await getGlobalParametersLOV('FURNISH')
-    const _data = Array.isArray(data) ? data.map(row => ({ ...row, checked: false })) : []
-
-    //Bind Bedrooms List
-    if (data?.length > 0) {
-      let options = [{ value: 0, label: 'Any', checked: true }, ..._data]
+    if (furnished?.length > 0) {
+      const furnishedOptionsData = furnished.map(row => ({ ...row, checked: false }))
+      const options = [{ value: 0, label: 'Any', checked: true }, ...furnishedOptionsData]
       setFurnishedOptions(options)
     }
   }
 
   const initialized = async () => {
-    setPropertyType()
-    setBedrooms()
-    setFurnished()
+    loadFilterOptions()
   }
 
   useEffect(() => {
@@ -1028,7 +1014,7 @@ const Properties = ({ initialProperties = [] }) => {
     setFilteredCount(0)
     setIsDrawerOpen(false)
     setFilterList(dataList)
-    replace('/rental/properties')
+    replace('/rentals/properties')
   }
 
   const handleSort = event => {
@@ -1051,7 +1037,7 @@ const Properties = ({ initialProperties = [] }) => {
       <SeoHead
         title='Properties Rental'
         description='Browse all properties rental. Filter by location, price, bedrooms and more.'
-        canonical='https://gocommunitymaptymap.com/rental/properties'
+        canonical='https://gocommunitymaptymap.com/rentals/properties'
       />
       <Grid container>
         <Grid item xs={12}>
@@ -1137,7 +1123,7 @@ const Properties = ({ initialProperties = [] }) => {
         </Grid>
       </Grid>
 
-      <FilterDrawer
+      {/* <FilterDrawer
         bedsOptions={bedsOptions}
         furnishedOptions={furnishedOptions}
         propertyTypesOptions={propertyTypesOptions}
@@ -1159,7 +1145,7 @@ const Properties = ({ initialProperties = [] }) => {
         onSubmit={onSubmit}
         clearFIlter={clearFIlter}
         watch={watch}
-      />
+      /> */}
     </>
   )
 }

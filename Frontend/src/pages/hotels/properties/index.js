@@ -71,7 +71,7 @@ import BreadCrumbs from 'src/views/components/breadcrumbs'
 import { useRouter } from 'next/router'
 import FallbackSpinner from 'src/@core/components/spinner'
 import LinkSaveButton from 'src/views/components/buttons/link-save-button'
-import { countryISO, getGlobalParametersLOV } from 'src/@core/utils'
+import { countryISO, getGlobalParametersGroupsLOV, getOptionsByTypeCode, GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
 import { useAuth } from 'src/hooks/useAuth'
 
 const placesLibrary = ['places']
@@ -129,13 +129,7 @@ const FilterBar = ({ setIsDrawerOpen, filteredCount, clearFIlter }) => {
             <Grid container>
               <Grid item xs={12} md={8}>
                 {isLoaded ? (
-                  <GAutocomplete
-                    options={{
-                      componentRestrictions: { country: countryISO }
-                    }}
-                    onPlaceChanged={onPlaceChanged}
-                    onLoad={onLoad}
-                  >
+                  <GAutocomplete onPlaceChanged={onPlaceChanged} onLoad={onLoad}>
                     <TextField
                       id='location'
                       size='small'
@@ -774,30 +768,27 @@ const Properties = ({ initialProperties = [] }) => {
   const [bedsOptions, setBedsOptions] = useState([])
   const [propertyTypesOptions, setPropertyTypesOptions] = useState([])
 
-  const setPropertyType = async () => {
-    const data = await getGlobalParametersLOV('PROPTYPE')
+  const loadFilterOptions = async () => {
+    const globalParametersLOVData = await getGlobalParametersGroupsLOV(
+      `${GLOBAL_PARAMETER_TYPES.PROPERTY_TYPE},${GLOBAL_PARAMETER_TYPES.BEDROOMS}`
+    )
 
-    //Bind Property Type List
-    let options = [{ value: 0, label: 'Show All' }, ...(Array.isArray(data) ? data : [])]
+    const propertyTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.PROPERTY_TYPE)
+    const bedrooms = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.BEDROOMS)
 
-    if (data?.length > 0) {
+    if (propertyTypes?.length > 0) {
+      const options = [{ value: 0, label: 'Show All' }, ...propertyTypes]
       setPropertyTypesOptions(options)
     }
-  }
 
-  const setBedrooms = async () => {
-    const data = await getGlobalParametersLOV('BEDROOMS')
-
-    //Bind Bedrooms List
-    if (data?.length > 0) {
-      let options = [{ value: '0', label: 'No Limit' }, ...(Array.isArray(data) ? data : [])]
+    if (bedrooms?.length > 0) {
+      const options = [{ value: '0', label: 'No Limit' }, ...bedrooms]
       setBedsOptions(options)
     }
   }
 
   const initialized = async () => {
-    setPropertyType()
-    setBedrooms()
+    loadFilterOptions()
   }
 
   useEffect(() => {
@@ -1147,7 +1138,7 @@ const Properties = ({ initialProperties = [] }) => {
         </Grid>
       </Grid>
 
-      <FilterDrawer
+      {/* <FilterDrawer
         bedsOptions={bedsOptions}
         propertyTypesOptions={propertyTypesOptions}
         isDrawerOpen={isDrawerOpen}
@@ -1168,7 +1159,7 @@ const Properties = ({ initialProperties = [] }) => {
         onSubmit={onSubmit}
         clearFIlter={clearFIlter}
         watch={watch}
-      />
+      /> */}
     </>
   )
 }

@@ -1,8 +1,8 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Models;
+using BusinessLogicLayer.Services;
 using DataAccessLayer.Data;
 using DataAccessLayer.Interface;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -17,14 +17,16 @@ namespace BusinessLogicLayer.Repositories
     public class setPropertiesRepository : ISetPropertiesRepository
     {
         private readonly IDataAccess _db;
-        private readonly IConfiguration _configuration;
+        private readonly IAppSettingsService _appSettingsService;
+        private int? UserCode { get; set; }
         public static string? selectedDatabase = "";
 
-        public setPropertiesRepository(IDataAccess db, IConfiguration configuration)
+        public setPropertiesRepository(IDataAccess db, IAppSettingsService appSettingsService, IJwtExtractService jwtExtractService)
         {
             _db = db;
-            _configuration = configuration;
-            selectedDatabase = _configuration["database"];
+            _appSettingsService = appSettingsService;
+            UserCode = jwtExtractService.GetUserIdFromToken();
+            selectedDatabase = appSettingsService.GetDatabase();
         }
         public object GetProperty(SetProperties setProperties)
         {
@@ -44,6 +46,10 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("LATITUDE", DbType.String, ParameterDirection.Input, setProperties.LATITUDE);
                 dyParam.AddDynamicParams("LONGITUDE", DbType.String, ParameterDirection.Input, setProperties.LONGITUDE);
                 dyParam.AddDynamicParams("PLACE", DbType.String, ParameterDirection.Input, setProperties.PLACE);
+                dyParam.AddDynamicParams("MAX_GUESTS", DbType.Decimal, ParameterDirection.Input, setProperties.MAX_GUESTS);
+                dyParam.AddDynamicParams("COUNTRY", DbType.String, ParameterDirection.Input, setProperties.COUNTRY);
+                dyParam.AddDynamicParams("PROVINCE", DbType.String, ParameterDirection.Input, setProperties.PROVINCE);
+                dyParam.AddDynamicParams("CITY", DbType.String, ParameterDirection.Input, setProperties.CITY);
                 dyParam.AddDynamicParams("MAP_URL", DbType.String, ParameterDirection.Input, setProperties.MAP_URL);
                 dyParam.AddDynamicParams("PROPERTY_TYPE_ID", DbType.Int32, ParameterDirection.Input, setProperties.PROPERTY_TYPE_ID);
                 dyParam.AddDynamicParams("NEW_BUILD", DbType.Boolean, ParameterDirection.Input, setProperties.NEW_BUILD);
@@ -56,8 +62,8 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("ISEXEMPT", DbType.Boolean, ParameterDirection.Input, setProperties.ISEXEMPT);
                 dyParam.AddDynamicParams("PRICE", DbType.Decimal, ParameterDirection.Input, setProperties.PRICE);
                 dyParam.AddDynamicParams("PRICE_MODIFIER_ID", DbType.Int32, ParameterDirection.Input, setProperties.PRICE_MODIFIER_ID);
-                dyParam.AddDynamicParams("LETTINGS_DEPOSIT_PAYABLE", DbType.Decimal, ParameterDirection.Input, setProperties.LETTINGS_DEPOSIT_PAYABLE);
-                dyParam.AddDynamicParams("LETTING_ARRANGEMENTS", DbType.String, ParameterDirection.Input, setProperties.LETTING_ARRANGEMENTS);
+                dyParam.AddDynamicParams("LETTINGS_DEPOSIT_PAYABLE", DbType.Int32, ParameterDirection.Input, setProperties.LETTINGS_DEPOSIT_PAYABLE);
+                dyParam.AddDynamicParams("LETTING_ARRANGEMENTS", DbType.Int32, ParameterDirection.Input, setProperties.LETTING_ARRANGEMENTS);
                 dyParam.AddDynamicParams("FEE_APPLY_ID", DbType.Int32, ParameterDirection.Input, setProperties.FEE_APPLY_ID);
                 dyParam.AddDynamicParams("FURNISHED_ID", DbType.Int32, ParameterDirection.Input, setProperties.FURNISHED_ID);
                 dyParam.AddDynamicParams("RENTAL_FREQUENCY_ID", DbType.Int32, ParameterDirection.Input, setProperties.RENTAL_FREQUENCY_ID);
@@ -76,6 +82,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("POTENTIAL_ERR_RATING", DbType.Int32, ParameterDirection.Input, setProperties.POTENTIAL_ERR_RATING);
                 dyParam.AddDynamicParams("CONTENT_FILE_LINK", DbType.String, ParameterDirection.Input, setProperties.CONTENT_FILE_LINK);
                 dyParam.AddDynamicParams("CONTENT_TYPE_ID", DbType.Int32, ParameterDirection.Input, setProperties.CONTENT_TYPE_ID);
+                dyParam.AddDynamicParams("PROPERTY_QUANTITY", DbType.Int32, ParameterDirection.Input, setProperties.PROPERTY_QUANTITY);
                 dyParam.AddDynamicParams("PICTURE_LINKS", DbType.String, ParameterDirection.Input, setProperties.PICTURE_LINKS == null ? null: JsonSerializer.Serialize(setProperties.PICTURE_LINKS));
                 dyParam.AddDynamicParams("CONTENT_TYPE_PICTURE_LINKS", DbType.String, ParameterDirection.Input, setProperties.CONTENT_TYPE_PICTURE_LINKS == null ? null: JsonSerializer.Serialize(setProperties.CONTENT_TYPE_PICTURE_LINKS));
                 dyParam.AddDynamicParams("PROPERTY_FEATURES", DbType.String, ParameterDirection.Input, setProperties.PROPERTY_FEATURES == null ? null: JsonSerializer.Serialize(setProperties.PROPERTY_FEATURES));
@@ -105,8 +112,31 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("POPULAR_COUNTRIES", DbType.String, ParameterDirection.Input, setProperties.POPULAR_COUNTRIES == null ? null : string.Join(",", setProperties.POPULAR_COUNTRIES));
 
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, setProperties.ACTIVE);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, setProperties.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.FETCH.ToString());
+                if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
+
+                return _db.ExecuteProc(sp_name, dyParam);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
+        }
+        public object GetPropertySetupList(int LISTING_TYPE_ID, int PAGE_NUMBER, int PAGE_SIZE)
+        {
+            try
+            {
+                string sp_name = Procedures.SP_SET_PROPERTIES.ToString();
+                Parameters dyParam = new Parameters();
+                dyParam.SelectedDB = _db.SelectedDatabase;
+                dyParam.AddDynamicParams("LISTING_TYPE_ID", DbType.Int32, ParameterDirection.Input, LISTING_TYPE_ID);
+                dyParam.AddDynamicParams("PAGE_NUMBER", DbType.Int32, ParameterDirection.Input, PAGE_NUMBER);
+                dyParam.AddDynamicParams("PAGE_SIZE", DbType.Int32, ParameterDirection.Input, PAGE_SIZE);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
+                dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.FETCH2.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
                 return _db.ExecuteProc(sp_name, dyParam);
@@ -136,6 +166,10 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("LATITUDE", DbType.String, ParameterDirection.Input, setProperties.LATITUDE);
                 dyParam.AddDynamicParams("LONGITUDE", DbType.String, ParameterDirection.Input, setProperties.LONGITUDE);
                 dyParam.AddDynamicParams("PLACE", DbType.String, ParameterDirection.Input, setProperties.PLACE);
+                dyParam.AddDynamicParams("MAX_GUESTS", DbType.Decimal, ParameterDirection.Input, setProperties.MAX_GUESTS);
+                dyParam.AddDynamicParams("COUNTRY", DbType.String, ParameterDirection.Input, setProperties.COUNTRY);
+                dyParam.AddDynamicParams("PROVINCE", DbType.String, ParameterDirection.Input, setProperties.PROVINCE);
+                dyParam.AddDynamicParams("CITY", DbType.String, ParameterDirection.Input, setProperties.CITY);
                 dyParam.AddDynamicParams("MAP_URL", DbType.String, ParameterDirection.Input, setProperties.MAP_URL);
                 dyParam.AddDynamicParams("PROPERTY_TYPE_ID", DbType.Int32, ParameterDirection.Input, setProperties.PROPERTY_TYPE_ID);
                 dyParam.AddDynamicParams("NEW_BUILD", DbType.Boolean, ParameterDirection.Input, setProperties.NEW_BUILD);
@@ -148,8 +182,8 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("ISEXEMPT", DbType.Boolean, ParameterDirection.Input, setProperties.ISEXEMPT);
                 dyParam.AddDynamicParams("PRICE", DbType.Decimal, ParameterDirection.Input, setProperties.PRICE);
                 dyParam.AddDynamicParams("PRICE_MODIFIER_ID", DbType.Int32, ParameterDirection.Input, setProperties.PRICE_MODIFIER_ID);
-                dyParam.AddDynamicParams("LETTINGS_DEPOSIT_PAYABLE", DbType.Decimal, ParameterDirection.Input, setProperties.LETTINGS_DEPOSIT_PAYABLE);
-                dyParam.AddDynamicParams("LETTING_ARRANGEMENTS", DbType.String, ParameterDirection.Input, setProperties.LETTING_ARRANGEMENTS);
+                dyParam.AddDynamicParams("LETTINGS_DEPOSIT_PAYABLE", DbType.Int32, ParameterDirection.Input, setProperties.LETTINGS_DEPOSIT_PAYABLE);
+                dyParam.AddDynamicParams("LETTING_ARRANGEMENTS", DbType.Int32, ParameterDirection.Input, setProperties.LETTING_ARRANGEMENTS);
                 dyParam.AddDynamicParams("FEE_APPLY_ID", DbType.Int32, ParameterDirection.Input, setProperties.FEE_APPLY_ID);
                 dyParam.AddDynamicParams("FURNISHED_ID", DbType.Int32, ParameterDirection.Input, setProperties.FURNISHED_ID);
                 dyParam.AddDynamicParams("RENTAL_FREQUENCY_ID", DbType.Int32, ParameterDirection.Input, setProperties.RENTAL_FREQUENCY_ID);
@@ -168,6 +202,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("POTENTIAL_ERR_RATING", DbType.Int32, ParameterDirection.Input, setProperties.POTENTIAL_ERR_RATING);
                 dyParam.AddDynamicParams("CONTENT_FILE_LINK", DbType.String, ParameterDirection.Input, setProperties.CONTENT_FILE_LINK);
                 dyParam.AddDynamicParams("CONTENT_TYPE_ID", DbType.Int32, ParameterDirection.Input, setProperties.CONTENT_TYPE_ID);
+                dyParam.AddDynamicParams("PROPERTY_QUANTITY", DbType.Int32, ParameterDirection.Input, setProperties.PROPERTY_QUANTITY);
                 dyParam.AddDynamicParams("PICTURE_LINKS", DbType.String, ParameterDirection.Input, setProperties.PICTURE_LINKS == null ? null: JsonSerializer.Serialize(setProperties.PICTURE_LINKS));
                 dyParam.AddDynamicParams("CONTENT_TYPE_PICTURE_LINKS", DbType.String, ParameterDirection.Input, setProperties.CONTENT_TYPE_PICTURE_LINKS == null ? null: JsonSerializer.Serialize(setProperties.CONTENT_TYPE_PICTURE_LINKS));
                 dyParam.AddDynamicParams("PROPERTY_FEATURES", DbType.String, ParameterDirection.Input, setProperties.PROPERTY_FEATURES == null ? null: JsonSerializer.Serialize(setProperties.PROPERTY_FEATURES));
@@ -197,7 +232,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("POPULAR_COUNTRIES", DbType.String, ParameterDirection.Input, setProperties.POPULAR_COUNTRIES == null ? null : string.Join(",", setProperties.POPULAR_COUNTRIES));
 
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, setProperties.ACTIVE);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, setProperties.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.INSERT.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
@@ -229,6 +264,10 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("LATITUDE", DbType.String, ParameterDirection.Input, setProperties.LATITUDE);
                 dyParam.AddDynamicParams("LONGITUDE", DbType.String, ParameterDirection.Input, setProperties.LONGITUDE);
                 dyParam.AddDynamicParams("PLACE", DbType.String, ParameterDirection.Input, setProperties.PLACE);
+                dyParam.AddDynamicParams("MAX_GUESTS", DbType.Decimal, ParameterDirection.Input, setProperties.MAX_GUESTS);
+                dyParam.AddDynamicParams("COUNTRY", DbType.String, ParameterDirection.Input, setProperties.COUNTRY);
+                dyParam.AddDynamicParams("PROVINCE", DbType.String, ParameterDirection.Input, setProperties.PROVINCE);
+                dyParam.AddDynamicParams("CITY", DbType.String, ParameterDirection.Input, setProperties.CITY);
                 dyParam.AddDynamicParams("MAP_URL", DbType.String, ParameterDirection.Input, setProperties.MAP_URL);
                 dyParam.AddDynamicParams("PROPERTY_TYPE_ID", DbType.Int32, ParameterDirection.Input, setProperties.PROPERTY_TYPE_ID);
                 dyParam.AddDynamicParams("NEW_BUILD", DbType.Boolean, ParameterDirection.Input, setProperties.NEW_BUILD);
@@ -241,8 +280,8 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("ISEXEMPT", DbType.Boolean, ParameterDirection.Input, setProperties.ISEXEMPT);
                 dyParam.AddDynamicParams("PRICE", DbType.Decimal, ParameterDirection.Input, setProperties.PRICE);
                 dyParam.AddDynamicParams("PRICE_MODIFIER_ID", DbType.Int32, ParameterDirection.Input, setProperties.PRICE_MODIFIER_ID);
-                dyParam.AddDynamicParams("LETTINGS_DEPOSIT_PAYABLE", DbType.Decimal, ParameterDirection.Input, setProperties.LETTINGS_DEPOSIT_PAYABLE);
-                dyParam.AddDynamicParams("LETTING_ARRANGEMENTS", DbType.String, ParameterDirection.Input, setProperties.LETTING_ARRANGEMENTS);
+                dyParam.AddDynamicParams("LETTINGS_DEPOSIT_PAYABLE", DbType.Int32, ParameterDirection.Input, setProperties.LETTINGS_DEPOSIT_PAYABLE);
+                dyParam.AddDynamicParams("LETTING_ARRANGEMENTS", DbType.Int32, ParameterDirection.Input, setProperties.LETTING_ARRANGEMENTS);
                 dyParam.AddDynamicParams("FEE_APPLY_ID", DbType.Int32, ParameterDirection.Input, setProperties.FEE_APPLY_ID);
                 dyParam.AddDynamicParams("FURNISHED_ID", DbType.Int32, ParameterDirection.Input, setProperties.FURNISHED_ID);
                 dyParam.AddDynamicParams("RENTAL_FREQUENCY_ID", DbType.Int32, ParameterDirection.Input, setProperties.RENTAL_FREQUENCY_ID);
@@ -261,6 +300,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("POTENTIAL_ERR_RATING", DbType.Int32, ParameterDirection.Input, setProperties.POTENTIAL_ERR_RATING);
                 dyParam.AddDynamicParams("CONTENT_FILE_LINK", DbType.String, ParameterDirection.Input, setProperties.CONTENT_FILE_LINK);
                 dyParam.AddDynamicParams("CONTENT_TYPE_ID", DbType.Int32, ParameterDirection.Input, setProperties.CONTENT_TYPE_ID);
+                dyParam.AddDynamicParams("PROPERTY_QUANTITY", DbType.Int32, ParameterDirection.Input, setProperties.PROPERTY_QUANTITY);
                 dyParam.AddDynamicParams("PICTURE_LINKS", DbType.String, ParameterDirection.Input, setProperties.PICTURE_LINKS == null ? null: JsonSerializer.Serialize(setProperties.PICTURE_LINKS));
                 dyParam.AddDynamicParams("CONTENT_TYPE_PICTURE_LINKS", DbType.String, ParameterDirection.Input, setProperties.CONTENT_TYPE_PICTURE_LINKS == null ? null: JsonSerializer.Serialize(setProperties.CONTENT_TYPE_PICTURE_LINKS));
                 dyParam.AddDynamicParams("PROPERTY_FEATURES", DbType.String, ParameterDirection.Input, setProperties.PROPERTY_FEATURES == null ? null: JsonSerializer.Serialize(setProperties.PROPERTY_FEATURES));
@@ -290,7 +330,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("POPULAR_COUNTRIES", DbType.String, ParameterDirection.Input, setProperties.POPULAR_COUNTRIES == null ? null : string.Join(",", setProperties.POPULAR_COUNTRIES));
 
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, setProperties.ACTIVE);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, setProperties.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.UPDATE.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
@@ -313,7 +353,7 @@ namespace BusinessLogicLayer.Repositories
                 Parameters dyParam = new Parameters();
                 dyParam.SelectedDB = _db.SelectedDatabase;
                 dyParam.AddDynamicParams("PROPERTY_ID", DbType.Int32, ParameterDirection.Input, setProperties.PROPERTY_ID);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, setProperties.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.DELETE.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");

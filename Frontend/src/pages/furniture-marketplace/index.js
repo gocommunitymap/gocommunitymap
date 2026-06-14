@@ -97,6 +97,7 @@ const FurnitureMarketplace = () => {
 }
 
 FurnitureMarketplace.guestGuard = true
-FurnitureMarketplace.getLayout = page => <GuestBlankLayout>{page}</GuestBlankLayout>
+
+// FurnitureMarketplace.getLayout = page => <GuestBlankLayout>{page}</GuestBlankLayout>
 
 export default FurnitureMarketplace

@@ -2,7 +2,7 @@ import createCache from '@emotion/cache'
 import { green, red } from '@mui/material/colors'
 import { format, differenceInDays, addDays } from 'date-fns'
 import toast from 'react-hot-toast'
-import { getGlobalParametersAPI } from 'src/configs'
+import { getGlobalParametersAPI, getGlobalParametersByTypeCodesAPI, getGlobalParametersGuestAPI } from 'src/configs'
 import { fieldTypeOptions } from './constant'
 import IconifyIcon from '../components/icon'
 import { jwtDecode } from 'jwt-decode'
@@ -285,7 +285,7 @@ export const getActiveProps = value => {
 }
 
 export const getGlobalParametersLOV = async TYPE_CODE => {
-  const response = await getGlobalParametersAPI({ TYPE_CODE, ALLOWED: true, ACTIVE: true })
+  const response = await getGlobalParametersGuestAPI({ TYPE_CODE, ALLOWED: true, ACTIVE: true })
   if (response?.error) {
     toast.error(response.error.message)
 
@@ -293,6 +293,30 @@ export const getGlobalParametersLOV = async TYPE_CODE => {
   }
 
   return response?.data?.map(item => ({ value: item.PARAMETER_CODE_3, label: item.PARAMETER_DESCRIPTION_3 }))
+
+  // return []
+}
+
+export const getGlobalParametersGroupsLOV = async TYPE_CODES => {
+  const response = await getGlobalParametersByTypeCodesAPI({ TYPE_CODES })
+  if (response?.error) {
+    toast.error(response.error.message)
+
+    return []
+  }
+
+  return response?.data?.map(item => ({
+    TYPE_CODE: item.TYPE_CODE,
+    value: item.PARAMETER_CODE_3,
+    label: item.PARAMETER_DESCRIPTION_3,
+    extra: item.PARAMETER_DESCRIPTION_4 || null
+  }))
+}
+
+export const getOptionsByTypeCode = (globalParametersLOVData, typeCode) => {
+  return (Array.isArray(globalParametersLOVData) ? globalParametersLOVData : [])
+    .filter(item => item.TYPE_CODE === typeCode)
+    .map(item => ({ value: item.value, label: item.label, extra: item.extra || null }))
 }
 
 //get global parameters LOV With 2 params
@@ -369,4 +393,20 @@ export const getPostCode = place => {
   }
 
   return postCode
+}
+
+export const debounce = (func, delay) => {
+  let timeoutId
+
+  return function (...args) {
+    clearTimeout(timeoutId)
+
+    timeoutId = setTimeout(() => {
+      func(...args)
+    }, delay)
+  }
+}
+
+export const setFieldFocus = key => {
+  document.querySelector(`[name="${key}"]`)?.focus()
 }

@@ -26,8 +26,9 @@ import Spinner from 'src/@core/components/spinner-with-logo'
 
 import { blue, green, grey, red } from '@mui/material/colors'
 import { useEffect, useState } from 'react'
-import { decUserData } from 'src/@core/utils'
+import { dateConvert, decUserData } from 'src/@core/utils'
 import { changePasswordAPI, getPropertiesByUserAPI, getSavedLinksAPI, getUserAPI } from 'src/configs'
+import { getBookingAPI } from 'src/configs/services/api-methods/guest'
 import { Controller, useForm } from 'react-hook-form'
 import { useAuth } from 'src/hooks/useAuth'
 import { statusOptions } from 'src/views/pages/admin/user/static-data'
@@ -88,6 +89,7 @@ const Account = () => {
 
   const [savedProperties, setSavedProperties] = useState({ data: [], isLoading: false })
   const [savedPropertiesSearch, setSavedPropertiesSearch] = useState({ data: [], isLoading: false })
+  const [bookings, setBookings] = useState({ data: [], isLoading: false })
   const { user, logout } = useAuth()
 
   const initialized = async () => {
@@ -111,6 +113,18 @@ const Account = () => {
         }
 
         setSavedProperties({ data: response?.data, isLoading: false })
+      })
+
+      // ----------------------------- //
+      // ----------------------------- //
+      setBookings({ data: [], isLoading: true })
+      getBookingAPI().then(response => {
+        if (response?.error) {
+          toast.error(response.error.message)
+
+          return
+        }
+        setBookings({ data: response?.data || [], isLoading: false })
       })
 
       // ----------------------------- //
@@ -216,7 +230,7 @@ const Account = () => {
                   <img src='/images/avatars/1.png' alt='image' width='100%' height='auto' />
                 </Box>
                 <Typography variant='h6' sx={{ mb: 3 }}>
-                  {states.user_full_name}
+                  {states?.user_full_name}
                 </Typography>
                 <Chip
                   size='small'
@@ -225,7 +239,7 @@ const Account = () => {
                     backgroundColor: blue[100],
                     color: blue[500]
                   }}
-                  label={states.USER_NAME}
+                  label={states?.USER_NAME}
                   variant='filled'
                 />
               </Grid>
@@ -241,11 +255,11 @@ const Account = () => {
                   <strong>EMAIL:</strong> {states.EMAIL}
                 </InputLabel>
               </Grid>
-              <Grid item xs={12}>
+              {/* <Grid item xs={12}>
                 <InputLabel>
                   <strong>ROLE:</strong> {states.ROLE_NAME}
                 </InputLabel>
-              </Grid>
+              </Grid> */}
               <Grid item xs={12}>
                 <InputLabel>
                   <strong>STATUS:</strong>
@@ -462,7 +476,117 @@ const Account = () => {
           </form>
         </Card>
       </Grid>
-      <Grid item md={9} xs={12}>
+      {/* My Bookings */}
+      <Grid item xs={12}>
+        <Card sx={{ height: '100%' }}>
+          <CardHeader
+            title={
+              <Box display='flex' alignItems='center' gap={1}>
+                <Icon icon='tabler:building-hotel' style={{ fontSize: 24 }} />
+                My Bookings
+              </Box>
+            }
+            subheader={`${bookings.data.length} total booking${bookings.data.length !== 1 ? 's' : ''}`}
+            action={
+              <Button
+                size='small'
+                variant='outlined'
+                startIcon={<Icon icon='tabler:building-hotel' />}
+                onClick={() => {}}
+                component={Link}
+                href='/hotels'
+              >
+                Find Hotels
+              </Button>
+            }
+          />
+          <CardContent>
+            {bookings.isLoading ? (
+              <Spinner />
+            ) : bookings.data.length > 0 ? (
+              <>
+                <Grid container spacing={2} mb={3}>
+                  {bookings.data.slice(0, 3).map((booking, index) => {
+                    const isCancelled = (booking.STATUS || '').toUpperCase() === 'CANCELLED'
+                    const isPending = (booking.STATUS || '').toUpperCase() === 'PENDING'
+                    const statusColor = isCancelled ? red[500] : isPending ? '#f59e0b' : green[600]
+                    const statusBg = isCancelled ? red[50] : isPending ? '#fff8e1' : green[50]
+                    const statusLabel = isCancelled ? 'Cancelled' : isPending ? 'Pending' : 'Confirmed'
+
+                    return (
+                      <Grid item xs={12} md={4} key={booking.BOOKING_NO || index}>
+                        <Box
+                          sx={{
+                            border: `1px solid ${statusBg}`,
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            boxShadow: 1
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              background: isCancelled
+                                ? 'linear-gradient(135deg, #e53935 0%, #ef5350 100%)'
+                                : isPending
+                                ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+                                : 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
+                              px: 2,
+                              py: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}
+                          >
+                            <Typography variant='subtitle2' fontWeight={700} color='#fff' noWrap>
+                              {booking.PROPERTY_NAME || 'Hotel Booking'}
+                            </Typography>
+                            <Chip
+                              label={statusLabel.toUpperCase()}
+                              size='small'
+                              sx={{ backgroundColor: '#fff', color: statusColor, fontWeight: 800, fontSize: '0.65rem' }}
+                            />
+                          </Box>
+                          <Box sx={{ px: 2, py: 1.5 }}>
+                            <Typography variant='caption' color='text.secondary' display='block'>
+                              Booking Ref: <strong style={{ color: statusColor }}>#{booking.BOOKING_NO}</strong>
+                            </Typography>
+                            <Typography variant='caption' color='text.secondary' display='block'>
+                              Check-in: <strong>{dateConvert(booking.CHECK_IN) || '—'}</strong>
+                            </Typography>
+                            <Typography variant='caption' color='text.secondary' display='block'>
+                              Check-out: <strong>{dateConvert(booking.CHECK_OUT) || '—'}</strong>
+                            </Typography>
+                            <Typography variant='caption' color='text.secondary' display='block'>
+                              Total:{' '}
+                              <strong style={{ color: statusColor }}>
+                                $ {Number(booking.TOTAL || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </strong>
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Grid>
+                    )
+                  })}
+                </Grid>
+                <Link
+                  href='/account/bookings'
+                  style={{ display: 'flex', justifyContent: 'center', color: theme.palette.primary.dark }}
+                >
+                  See all bookings
+                </Link>
+              </>
+            ) : (
+              <NoRecordCard
+                title='No bookings yet'
+                subtitle='When you book a hotel, your reservations will appear here.'
+                variant='outlined'
+                borderLess={true}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12}>
         <Card sx={{ height: '100%' }}>
           <CardHeader
             title={
@@ -505,7 +629,7 @@ const Account = () => {
           </CardContent>
         </Card>
       </Grid>
-      <Grid item md={3} xs={12}>
+      {/* <Grid item md={3} xs={12}>
         <Card sx={{ height: '100%' }}>
           <CardHeader
             title={
@@ -557,7 +681,7 @@ const Account = () => {
             )}
           </CardContent>
         </Card>
-      </Grid>
+      </Grid> */}
     </Grid>
   )
 }

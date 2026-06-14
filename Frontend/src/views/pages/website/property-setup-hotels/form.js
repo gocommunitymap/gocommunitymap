@@ -41,10 +41,12 @@ import { statusOptions, setStatusOptions } from './static-data'
 import {
   countryISO,
   dateConvert,
-  getGlobalParametersLOV,
+  getGlobalParametersGroupsLOV,
   getGlobalParametersLOV_W2P,
+  getOptionsByTypeCode,
   getPostCode,
   validateFileFormat,
+  GLOBAL_PARAMETER_TYPES,
   POPULAR_COUNTRIES,
   POPULAR_REGIONS
 } from 'src/@core/utils'
@@ -167,13 +169,36 @@ export const ModalForm = ({
   const [searchState, setSearchState] = useState()
   const [mapParams, setMapParams] = useState({})
 
-  const setSiteStatus = async () => {
-    const data = await getGlobalParametersLOV('SITESTS')
+  const loadGlobalParameterOptions = async () => {
+    const globalParametersLOVData = await getGlobalParametersGroupsLOV(
+      `${GLOBAL_PARAMETER_TYPES.SITE_STATUS},${GLOBAL_PARAMETER_TYPES.ROOM_TYPE},${GLOBAL_PARAMETER_TYPES.TENURE},${GLOBAL_PARAMETER_TYPES.COUNCIL_TAX_BAND},${GLOBAL_PARAMETER_TYPES.BEDROOMS},${GLOBAL_PARAMETER_TYPES.BATHROOMS},${GLOBAL_PARAMETER_TYPES.RECEPTIONS},${GLOBAL_PARAMETER_TYPES.FLOORS},${GLOBAL_PARAMETER_TYPES.UNITS},${GLOBAL_PARAMETER_TYPES.CONTENT_TYPE},${GLOBAL_PARAMETER_TYPES.BED_TYPE},${GLOBAL_PARAMETER_TYPES.PRICE_MODIFIER}`
+    )
 
-    //Bind Site Status List
-    if (data?.length > 0) {
-      setSiteStatusOptions(data)
-    }
+    const siteStatuses = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.SITE_STATUS)
+    const roomTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.ROOM_TYPE)
+    const tenures = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.TENURE)
+    const councilTaxBands = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.COUNCIL_TAX_BAND)
+    const bedrooms = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.BEDROOMS)
+    const bathrooms = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.BATHROOMS)
+    const receptions = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.RECEPTIONS)
+    const floors = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.FLOORS)
+    const units = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.UNITS)
+    const contentTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.CONTENT_TYPE)
+    const bedTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.BED_TYPE)
+    const priceModifiers = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.PRICE_MODIFIER)
+
+    if (siteStatuses?.length > 0) setSiteStatusOptions(siteStatuses)
+    if (roomTypes?.length > 0) setPropertyTypeOptions(roomTypes)
+    if (tenures?.length > 0) setTenureOptions(tenures)
+    if (councilTaxBands?.length > 0) setCouncilTaxBandOptions(councilTaxBands)
+    if (bedrooms?.length > 0) setBedroomsOptions(bedrooms)
+    if (bathrooms?.length > 0) setBathroomsOptions(bathrooms)
+    if (receptions?.length > 0) setReceptionsOptions(receptions)
+    if (floors?.length > 0) setFloorsOptions(floors)
+    if (units?.length > 0) setUnitsOptions(units)
+    if (contentTypes?.length > 0) setContentTypeOptions(contentTypes)
+    if (bedTypes?.length > 0) setBedTypeOptions(bedTypes)
+    if (priceModifiers?.length > 0) setPriceModifierOptions(priceModifiers)
   }
 
   const setListingStatus = async () => {
@@ -182,95 +207,6 @@ export const ModalForm = ({
     //Bind Listing Status List
     if (data?.length > 0) {
       setListingStatusOptions(data)
-    }
-  }
-
-  const setPropertyType = async () => {
-    const data = await getGlobalParametersLOV('ROOMTYPE')
-
-    //Bind Property Type List
-    if (data?.length > 0) {
-      setPropertyTypeOptions(data)
-    }
-  }
-
-  const setTenure = async () => {
-    const data = await getGlobalParametersLOV('TENURE')
-
-    //Bind Tenure List
-    if (data?.length > 0) {
-      setTenureOptions(data)
-    }
-  }
-
-  const setCouncilTaxBand = async () => {
-    const data = await getGlobalParametersLOV('CTB')
-
-    //Bind Council Tax Band List
-    if (data?.length > 0) {
-      setCouncilTaxBandOptions(data)
-    }
-  }
-
-  const setBedrooms = async () => {
-    const data = await getGlobalParametersLOV('BEDROOMS')
-
-    //Bind Bedrooms List
-    if (data?.length > 0) {
-      setBedroomsOptions(data)
-    }
-  }
-
-  const setBathrooms = async () => {
-    const data = await getGlobalParametersLOV('BATHROOMS')
-
-    //Bind Bathrooms List
-    if (data?.length > 0) {
-      setBathroomsOptions(data)
-    }
-  }
-
-  const setReceptions = async () => {
-    const data = await getGlobalParametersLOV('RECEP')
-
-    //Bind Receptions List
-    if (data?.length > 0) {
-      setReceptionsOptions(data)
-    }
-  }
-
-  const setFloors = async () => {
-    const data = await getGlobalParametersLOV('FLOORS')
-
-    //Bind Floors List
-    if (data?.length > 0) {
-      setFloorsOptions(data)
-    }
-  }
-
-  const setUnits = async () => {
-    const data = await getGlobalParametersLOV('UNITS')
-
-    //Bind Units List
-    if (data?.length > 0) {
-      setUnitsOptions(data)
-    }
-  }
-
-  const setContentType = async () => {
-    const data = await getGlobalParametersLOV('CONTTYPE')
-
-    //Bind Units List
-    if (data?.length > 0) {
-      setContentTypeOptions(data)
-    }
-  }
-
-  const setBedTypes = async () => {
-    const data = await getGlobalParametersLOV('BEDTYPE')
-
-    if (data?.length > 0) {
-      setBedTypeOptions(data)
     }
   }
 
@@ -451,32 +387,12 @@ export const ModalForm = ({
     }
   }
 
-  const setPriceModifier = async () => {
-    const data = await getGlobalParametersLOV('PRICEMDFR')
-
-    //Bind Price Modifier List
-    if (data?.length > 0) {
-      setPriceModifierOptions(data)
-    }
-  }
-
   const initialized = async () => {
-    setSiteStatus()
+    loadGlobalParameterOptions()
     setListingStatus()
-    setPropertyType()
-    setTenure()
-    setCouncilTaxBand()
-    setPriceModifier()
-    setBedrooms()
-    setBathrooms()
-    setReceptions()
-    setFloors()
-    setUnits()
     bindFeatures()
     bindUtilities()
     bindUsingPlanning()
-    setContentType()
-    setBedTypes()
     setMapParams({
       LATITUDE: parseFloat(watch('LATITUDE')),
       LONGITUDE: parseFloat(watch('LONGITUDE')),
@@ -501,12 +417,17 @@ export const ModalForm = ({
   function onPlaceChanged() {
     if (searchResult != null) {
       const place = searchResult.getPlace()
-      console.log('place', place)
 
       const name = place.name
       const status = place.business_status
       const formattedAddress = place.formatted_address
       const location = place.geometry?.location
+      const country = place.address_components?.find(component => component.types.includes('country'))?.long_name
+
+      const province = place.address_components?.find(component =>
+        component.types.includes('administrative_area_level_1')
+      )?.long_name
+      const city = place.address_components?.find(component => component.types.includes('locality'))?.long_name
 
       const postCode = place ? getPostCode(place) : null
 
@@ -534,6 +455,9 @@ export const ModalForm = ({
       setValue('LATITUDE', lat)
       setValue('LONGITUDE', lng)
       setValue('PLACE', formattedAddress)
+      setValue('COUNTRY', country)
+      setValue('PROVINCE', province)
+      setValue('CITY', city)
       setPLACE(formattedAddress)
       setValue('FULLPOSTCODE', postCode || '')
       setValue('MAP_URL', mapUrl)
@@ -1209,13 +1133,7 @@ export const ModalForm = ({
                                   name='PLACE'
                                   control={control}
                                   render={({ field: { value, onChange } }) => (
-                                    <GAutocomplete
-                                      options={{
-                                        componentRestrictions: { country: countryISO }
-                                      }}
-                                      onPlaceChanged={onPlaceChanged}
-                                      onLoad={onLoad}
-                                    >
+                                    <GAutocomplete onPlaceChanged={onPlaceChanged} onLoad={onLoad}>
                                       <TextField
                                         id='icons-start-adornment'
                                         size='medium'

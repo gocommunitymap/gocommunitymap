@@ -20,12 +20,13 @@ import {
 import { DataGrid } from '@mui/x-data-grid'
 import { Icon } from '@iconify/react'
 import { toast } from 'react-hot-toast'
-import { handleSearch } from 'src/@core/utils'
+import { dateConvert, handleSearch } from 'src/@core/utils'
 import DataGridHeaderToolbar from 'src/views/table/data-grid/DataGridHeaderToolbar'
 import { getBookingAPI, cancelBookingAPI, updateBookingStatusAPI } from 'src/configs/services/api-methods/guest'
 import SeoHead from 'src/components/SeoHead'
+import themeConfig from 'src/configs/themeConfig'
 
-const pageTitle = 'Hotel Bookings'
+const pageTitle = 'Bookings'
 
 const statusColorMap = {
   CONFIRMED: 'success',
@@ -34,12 +35,49 @@ const statusColorMap = {
 }
 
 const formatDate = dateStr => {
-  if (!dateStr) return '—'
+  if (!dateStr) return '-'
   const [y, m, d] = String(dateStr).split('-').map(Number)
   if (!y || !m || !d) return dateStr
 
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+const resolveBookingListingType = booking => {
+  const numericCandidates = [
+    booking?.LISTING_TYPE_ID,
+    booking?.LISTING_TYPE,
+    booking?.PROPERTY_LISTING_TYPE_ID,
+    booking?.TYPE_ID
+  ]
+
+  for (const candidate of numericCandidates) {
+    const parsed = Number(candidate)
+    if (parsed === 2) return 2
+    if (parsed === 1) return 1
+  }
+
+  const displayType = Number(booking?.DISPLAY_TYPE)
+  if (displayType === 3) return 2
+  if (displayType === 2) return 1
+
+  const hintText = [
+    booking?.LISTING_TYPE_DESC,
+    booking?.LISTING_TYPE_NAME,
+    booking?.PROPERTY_TYPE_DESC,
+    booking?.CATEGORY
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (hintText.includes('rental')) return 2
+  if (hintText.includes('hotel')) return 1
+
+  return 1
+}
+
+const bookingTypeLabel = booking => (resolveBookingListingType(booking) === 2 ? 'Rental' : 'Hotel')
+const bookingRouteBase = booking => (resolveBookingListingType(booking) === 2 ? '/rentals/booking' : '/hotels/booking')
 
 const AdminBookings = () => {
   const router = useRouter()
@@ -90,28 +128,26 @@ const AdminBookings = () => {
 
   const columns = [
     {
-      flex: 1,
       minWidth: 160,
       field: 'BOOKING_NO',
       headerName: 'Booking Ref',
       renderCell: ({ row }) => (
-        <Typography variant='body2' fontWeight={700} sx={{ color: '#27ae60' }}>
+        <Typography variant='body2' fontSize={10} fontWeight={700} sx={{ color: '#27ae60' }}>
           #{row.BOOKING_NO}
         </Typography>
       )
     },
     {
-      flex: 1.5,
       minWidth: 200,
       field: 'PROPERTY_NAME',
       headerName: 'Property',
       renderCell: ({ row }) => (
-        <Box>
+        <Box sx={{ lineHeight: '1px !important' }}>
           <Typography variant='body2' fontWeight={600}>
-            {row.PROPERTY_NAME || '—'}
+            {row.PROPERTY_NAME || '-'}
           </Typography>
           {row.PLACE && (
-            <Typography variant='caption' color='text.secondary'>
+            <Typography sx={{ textWrap: 'wrap', wordWrap: 'break-word' }} variant='caption' color='text.secondary'>
               {row.PLACE}
             </Typography>
           )}
@@ -119,42 +155,53 @@ const AdminBookings = () => {
       )
     },
     {
-      flex: 1.2,
+      minWidth: 100,
+      field: 'TYPE',
+      headerName: 'Type',
+      renderCell: ({ row }) => {
+        const isRental = resolveBookingListingType(row) === 2
+
+        return (
+          <Chip
+            size='small'
+            label={isRental ? 'RENTAL' : 'HOTEL'}
+            color={isRental ? 'info' : 'secondary'}
+            sx={{ fontWeight: 700, fontSize: '0.68rem', letterSpacing: 0.5 }}
+          />
+        )
+      }
+    },
+    {
       minWidth: 160,
       field: 'GUEST_FIRST_NAME',
       headerName: 'Guest',
-      renderCell: ({ row }) => `${row.GUEST_FIRST_NAME || ''} ${row.GUEST_LAST_NAME || ''}`.trim() || '—'
+      renderCell: ({ row }) => `${row.GUEST_FIRST_NAME || ''} ${row.GUEST_LAST_NAME || ''}`.trim() || '-'
     },
     {
-      flex: 1,
       minWidth: 115,
       field: 'CHECK_IN',
       headerName: 'Check-in',
-      renderCell: ({ row }) => formatDate(row.CHECK_IN)
+      renderCell: ({ row }) => dateConvert(row.CHECK_IN)
     },
     {
-      flex: 1,
       minWidth: 115,
       field: 'CHECK_OUT',
       headerName: 'Check-out',
-      renderCell: ({ row }) => formatDate(row.CHECK_OUT)
+      renderCell: ({ row }) => dateConvert(row.CHECK_OUT)
     },
     {
-      flex: 0.7,
       minWidth: 90,
       field: 'NIGHTS',
       headerName: 'Stay',
-      renderCell: ({ row }) => `${row.NIGHTS || 1}N / ${row.ROOMS || 1}R`
+      renderCell: ({ row }) => `${row.NIGHTS || 1} Night${row.NIGHTS > 1 ? 's' : ''}`
     },
     {
-      flex: 1,
       minWidth: 130,
       field: 'TOTAL',
       headerName: 'Total',
       renderCell: ({ row }) => `$ ${Number(row.TOTAL || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
     },
     {
-      flex: 1,
       minWidth: 120,
       field: 'STATUS',
       headerName: 'Status',
@@ -166,13 +213,12 @@ const AdminBookings = () => {
             label={s}
             color={statusColorMap[s] || 'default'}
             size='small'
-            sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: 0.5 }}
+            sx={{ fontWeight: 700, fontSize: '0.6rem', letterSpacing: 0.5 }}
           />
         )
       }
     },
     {
-      flex: 1.3,
       minWidth: 150,
       sortable: false,
       filterable: false,
@@ -187,12 +233,6 @@ const AdminBookings = () => {
 
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Tooltip title='View booking detail' placement='top'>
-              <IconButton size='small' onClick={() => router.push(`/hotels/booking/${row.BOOKING_NO}`)}>
-                <Icon icon='tabler:eye' />
-              </IconButton>
-            </Tooltip>
-
             {isPending && (
               <Tooltip title='Confirm booking' placement='top'>
                 <IconButton
@@ -216,6 +256,15 @@ const AdminBookings = () => {
                 </IconButton>
               </Tooltip>
             )}
+            <Tooltip title='View booking detail' placement='top'>
+              <IconButton
+                size='small'
+                color='primary'
+                onClick={() => router.push(`${bookingRouteBase(row)}/${row.BOOKING_NO}`)}
+              >
+                <Icon icon='tabler:eye' />
+              </IconButton>
+            </Tooltip>
           </Box>
         )
       }
@@ -226,11 +275,12 @@ const AdminBookings = () => {
 
   const exportDataList = dataList.map(b => ({
     'Booking Ref': b.BOOKING_NO,
+    Type: bookingTypeLabel(b),
     Property: b.PROPERTY_NAME || '',
     'Guest Name': `${b.GUEST_FIRST_NAME || ''} ${b.GUEST_LAST_NAME || ''}`.trim(),
     'Guest Email': b.GUEST_EMAIL || '',
-    'Check-in': b.CHECK_IN || '',
-    'Check-out': b.CHECK_OUT || '',
+    'Check-in': dateConvert(b.CHECK_IN) || '',
+    'Check-out': dateConvert(b.CHECK_OUT) || '',
     Nights: b.NIGHTS || '',
     Rooms: b.ROOMS || '',
     Adults: b.ADULTS || '',
@@ -242,7 +292,7 @@ const AdminBookings = () => {
 
   return (
     <>
-      <SeoHead title={`${pageTitle} – GoCommunityMap`} description='Manage hotel bookings.' />
+      <SeoHead title={`${pageTitle} – ${themeConfig.templateName}`} description='Manage hotel and rental bookings.' />
 
       <Grid container spacing={6.5}>
         <Grid item xs={12}>
@@ -259,8 +309,8 @@ const AdminBookings = () => {
               }}
               pageSizeOptions={[5, 10, 25, 50]}
               onPaginationModelChange={model => setPageSize(model.pageSize)}
-              components={{ Toolbar: DataGridHeaderToolbar }}
-              componentsProps={{
+              slots={{ toolbar: DataGridHeaderToolbar }}
+              slotProps={{
                 baseButton: { variant: 'outlined' },
                 toolbar: {
                   onChange: event => handleSearch({ value: event.target.value, data: allData, setSearchStates }),
@@ -273,10 +323,9 @@ const AdminBookings = () => {
                 }
               }}
               autoHeight
-              rowHeight={40}
+              rowHeight={100}
               getRowId={row => `${row.BOOKING_NO || row.CODE}`}
               columns={columns}
-              disableSelectionOnClick
             />
           </Card>
         </Grid>
@@ -328,7 +377,7 @@ const AdminBookings = () => {
               disabled={submitting}
               startIcon={submitting ? null : <Icon icon='tabler:circle-check' />}
             >
-              {submitting ? 'Confirming…' : 'Confirm'}
+              {submitting ? 'Confirming-¦' : 'Confirm'}
             </Button>
           ) : (
             <Button
@@ -338,7 +387,7 @@ const AdminBookings = () => {
               disabled={submitting}
               startIcon={submitting ? null : <Icon icon='tabler:x-circle' />}
             >
-              {submitting ? 'Cancelling…' : 'Cancel Booking'}
+              {submitting ? 'Cancelling-¦' : 'Cancel Booking'}
             </Button>
           )}
         </DialogActions>

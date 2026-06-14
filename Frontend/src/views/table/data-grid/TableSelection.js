@@ -124,7 +124,7 @@ const columns = [
 
 const TableSelection = () => {
   // ** State
-  const [pageSize, setPageSize] = useState(7)
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 7 })
 
   return (
     <Card>
@@ -134,9 +134,9 @@ const TableSelection = () => {
         rows={rows}
         columns={columns}
         checkboxSelection
-        pageSize={pageSize}
         pageSizeOptions={[7, 10, 25, 50]}
-        onPageSizeChange={newPageSize => setPageSize(newPageSize)}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
       />
     </Card>
   )

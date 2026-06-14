@@ -12,6 +12,7 @@ namespace BusinessLogicLayer.Models
         public int? usercode { get; set; }
         public string? user_name { get; set; }
         public string? email { get; set; }
+        public string? contact_no { get; set; }
         public int? user_type { get; set; }
         public string? role_name { get; set; }
         public string? refresh_token { get; set; }

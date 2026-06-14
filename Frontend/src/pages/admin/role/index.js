@@ -141,24 +141,24 @@ const Role = () => {
             filterable: false,
             editable: false,
             disableColumnMenu: false,
-            flex: 1,
+
             minWidth: 100,
             align: 'right',
             headerAlign: 'right',
             headerName: 'Action',
             renderCell: ({ row }) => {
               return (
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'row' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'end', flexDirection: 'row' }}>
                   {isAllowed(permissions, 'U') && (
                     <Tooltip title='Edit' placement='top'>
-                      <IconButton size='small' onClick={() => handleEdit(row)}>
+                      <IconButton color='primary' size='small' onClick={() => handleEdit(row)}>
                         <Icon icon='tabler:edit' />
                       </IconButton>
                     </Tooltip>
                   )}
                   {isAllowed(permissions, 'D') && (
                     <Tooltip title='Delete' placement='top'>
-                      <IconButton size='small' onClick={() => handleConfirm({ data: row })}>
+                      <IconButton color='error' size='small' onClick={() => handleConfirm({ data: row })}>
                         <Icon icon='tabler:trash' />
                       </IconButton>
                     </Tooltip>
@@ -232,9 +232,8 @@ const Role = () => {
                 }
               }}
               pageSizeOptions={[10, 20, 30, 50]}
-              components={{ Toolbar: DataGridHeaderToolbar }}
-              onPageSizeChange={newPageSize => setStates({ ...states, pageSize: newPageSize })}
-              componentsProps={{
+              slots={{ toolbar: DataGridHeaderToolbar }}
+              slotProps={{
                 baseButton: {
                   variant: 'outlined'
                 },
@@ -264,7 +263,6 @@ const Role = () => {
               rowHeight={32}
               getRowId={row => `${row.role_code}`}
               columns={updateColumns}
-              disableSelectionOnClick
             />
           </Card>
         </Grid>

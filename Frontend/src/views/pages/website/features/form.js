@@ -183,7 +183,7 @@ export const ModalForm = ({ control, states, handleDiscard, onSubmit, handleSubm
                                         <IconifyIcon
                                           width={20}
                                           icon={
-                                            field.value?.value.includes('tabler')
+                                            field.value?.value?.includes('tabler')
                                               ? field?.value?.value
                                               : `tabler:${field?.value?.value}`
                                           }

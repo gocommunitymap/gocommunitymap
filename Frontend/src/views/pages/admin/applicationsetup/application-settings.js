@@ -15,6 +15,7 @@ import Alert from '@mui/material/Alert'
 import { Icon } from '@iconify/react'
 import { getGlobalParametersAPI, updateGlobalParametersAPI } from 'src/configs'
 import { Card, CardHeader, Divider } from '@mui/material'
+import { GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
 
 // Normalise PARAMETER_DESCRIPTION_2 to one of: text | number | checkbox | switch
 const resolveType = raw => {
@@ -42,7 +43,7 @@ export const ApplicationSettings = () => {
     setLoading(true)
     setError('')
     try {
-      const res = await getGlobalParametersAPI({ TYPE_CODE: 'APPSET' })
+      const res = await getGlobalParametersAPI({ TYPE_CODE: GLOBAL_PARAMETER_TYPES.APPLICATION_SETTING })
       const data = res?.data || []
       setSettings(
         data.map(item => ({
@@ -268,7 +269,7 @@ export const ApplicationSettings = () => {
                               </>
                             ) : (
                               <Tooltip title='Edit'>
-                                <IconButton size='small' onClick={() => startEdit(item)}>
+                                <IconButton color='primary' size='small' onClick={() => startEdit(item)}>
                                   <Icon icon='tabler:edit' width={16} />
                                 </IconButton>
                               </Tooltip>

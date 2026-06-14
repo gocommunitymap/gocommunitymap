@@ -56,7 +56,11 @@ const CommunityMapViewComponent = () => {
 
     // Amenities
     if (filters.amenities && filters.amenities.length > 0) {
-      filtered = filtered.filter(p => filters.amenities.every(a => p.amenities && p.amenities.includes(a)))
+      filtered = filtered.filter(p => {
+        const propertyAmenities = p.amenities || []
+
+        return filters.amenities.every(a => propertyAmenities.some(pa => pa.FEATURES_ID === a))
+      })
     }
     setFilteredProperties(filtered)
   }, [filters, properties])
@@ -87,6 +91,7 @@ const CommunityMapViewComponent = () => {
           setFilters={setFilters}
           minValue={Math.min(...properties.map(p => p.price))}
           maxValue={Math.max(...properties.map(p => p.price))}
+          amenitiesData={properties}
         />
         {!isMobile && (
           <CommunityMapListPanel

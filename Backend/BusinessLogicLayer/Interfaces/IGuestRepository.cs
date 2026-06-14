@@ -11,7 +11,9 @@ namespace BusinessLogicLayer.Interfaces
     {
         public object GetPropertiesFullDetails(GetProperties getProperties, int PAGE_NUMBER, int PAGE_SIZE);
 
-        public object GetProperties(GetProperties getProperties, int PAGE_NUMBER, int PAGE_SIZE);
+        public object GetProperties(GetPropertiesFilters getProperties, int PAGE_NUMBER, int PAGE_SIZE);
+        public object GetPropertiesForMap(GetPropertiesFiltersForMap getProperties);
+
         public object GetPropertiesByUser(GetProperties getProperties);
 
         public object GetPlacesByPostCode(string FULLPOSTCODE);

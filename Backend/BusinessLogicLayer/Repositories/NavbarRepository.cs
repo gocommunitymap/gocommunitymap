@@ -1,8 +1,8 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Models;
+using BusinessLogicLayer.Services;
 using DataAccessLayer.Data;
 using DataAccessLayer.Interface;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,14 +18,16 @@ namespace BusinessLogicLayer.Repositories
     {
 
         private readonly IDataAccess _db;
-        private readonly IConfiguration _configuration;
+        private readonly IAppSettingsService _appSettingsService;
+        private int? UserCode { get; set; }
         public static string? selectedDatabase = "";
 
-        public NavbarRepository(IDataAccess db, IConfiguration configuration)
+        public NavbarRepository(IDataAccess db, IAppSettingsService appSettingsService, IJwtExtractService jwtExtractService)
         {
             _db = db;
-            _configuration = configuration;
-            selectedDatabase = _configuration["database"];
+            _appSettingsService = appSettingsService;
+            UserCode = jwtExtractService.GetUserIdFromToken();
+            selectedDatabase = appSettingsService.GetDatabase();
         }
 
         public object GetNavbar(Navbar navbarData)
@@ -43,7 +45,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("ICON", DbType.String, ParameterDirection.Input, navbarData.ICON);
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, navbarData.ACTIVE);
 
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, navbarData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.FETCH.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
@@ -73,7 +75,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("ICON", DbType.String, ParameterDirection.Input, navbarData.ICON);
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, navbarData.ACTIVE);
 
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, navbarData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.INSERT.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
@@ -101,7 +103,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("ICON", DbType.String, ParameterDirection.Input, navbarData.ICON);
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, navbarData.ACTIVE);
 
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, navbarData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.UPDATE.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
@@ -123,7 +125,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.SelectedDB = _db.SelectedDatabase;
                 dyParam.AddDynamicParams("NAV_ID", DbType.Int32, ParameterDirection.Input, navbarData.NAV_ID);
 
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, navbarData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.DELETE.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");

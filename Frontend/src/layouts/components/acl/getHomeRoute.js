@@ -4,7 +4,6 @@
  * User Type B (Agent)
  */
 const getHomeRoute = role => {
-
   if (userType === 'A') return '/admin-dashboard'
   else return '/agent-dashboard'
 }

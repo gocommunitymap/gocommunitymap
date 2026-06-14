@@ -131,13 +131,7 @@ export const SearchRentalSectionComCard = () => {
                     <Grid item xs={12} textAlign='left'>
                       <Typography variant='subtitle2'>Search area</Typography>
                       {isLoaded ? (
-                        <GAutocomplete
-                          options={{
-                            componentRestrictions: { country: countryISO }
-                          }}
-                          onPlaceChanged={onPlaceChanged}
-                          onLoad={onLoad}
-                        >
+                        <GAutocomplete onPlaceChanged={onPlaceChanged} onLoad={onLoad}>
                           <TextField id='icons-start-adornment' size='medium' placeholder='Find Location' fullWidth />
                         </GAutocomplete>
                       ) : (

@@ -4,7 +4,8 @@ import { useRouter } from 'next/router'
 import GuestBlankLayout from 'src/@core/layouts/GuestLayoutAppBar'
 import SeoHead from 'src/components/SeoHead'
 
-import { defaultPageFont } from 'src/@core/utils'
+import { dateConvert, defaultPageFont } from 'src/@core/utils'
+import themeConfig from 'src/configs/themeConfig'
 
 const formatConfirmedDate = dateStr => {
   if (!dateStr) return '—'
@@ -48,6 +49,8 @@ const HotelBookingConfirmed = () => {
     place: q.place || '',
     checkIn: q.checkIn || '',
     checkOut: q.checkOut || '',
+    checkInTime: q.checkInTime || '',
+    checkOutTime: q.checkOutTime || '',
     nights,
     total: computedTotal,
     paymentMethod: q.paymentMethod || 'Credit Card',
@@ -61,7 +64,10 @@ const HotelBookingConfirmed = () => {
 
   return (
     <>
-      <SeoHead title='Booking Confirmed – GoCommunityMap' description='Your hotel booking is confirmed!' />
+      <SeoHead
+        title={`Booking Confirmed – ${themeConfig.templateName}`}
+        description='Your hotel booking is confirmed!'
+      />
 
       <Box
         sx={{
@@ -176,10 +182,10 @@ const HotelBookingConfirmed = () => {
                         Check-in
                       </Typography>
                       <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
-                        {formatConfirmedDate(bookingData.checkIn)}
+                        {dateConvert(bookingData.checkIn)}
                       </Typography>
                       <Typography variant='caption' color='text.secondary'>
-                        From 3:00 PM
+                        {bookingData.checkInTime ? `From ${bookingData.checkInTime}` : 'From —'}
                       </Typography>
                     </Box>
                   </Stack>
@@ -204,10 +210,10 @@ const HotelBookingConfirmed = () => {
                         Check-out
                       </Typography>
                       <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
-                        {formatConfirmedDate(bookingData.checkOut)}
+                        {dateConvert(bookingData.checkOut)}
                       </Typography>
                       <Typography variant='caption' color='text.secondary'>
-                        By 11:00 AM
+                        {bookingData.checkOutTime ? `By ${bookingData.checkOutTime}` : 'By —'}
                       </Typography>
                     </Box>
                   </Stack>
@@ -246,64 +252,66 @@ const HotelBookingConfirmed = () => {
               <Divider sx={{ my: 2.5 }} />
 
               {/* Price & Booking ID */}
-              <Stack direction='row' justifyContent='space-between' alignItems='center' sx={{ mb: 1 }}>
-                <Box sx={{ flex: 1 }}>
-                  {selectedRooms.length > 0 && (
-                    <Box sx={{ mb: 1 }}>
-                      {selectedRooms.map((s, i) => (
-                        <Stack key={i} direction='row' justifyContent='space-between' sx={{ mb: 0.25 }}>
-                          <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
-                            {s.name} &times; {s.qty}
-                          </Typography>
-                          <Typography variant='caption' fontWeight={600} fontFamily={defaultPageFont}>
-                            ${' '}
-                            {((s.price || 0) * (s.qty || 1) * nights).toLocaleString('en-US', {
-                              minimumFractionDigits: 2
-                            })}
-                          </Typography>
-                        </Stack>
-                      ))}
-                      {computedServiceFee > 0 && (
-                        <Stack direction='row' justifyContent='space-between' sx={{ mb: 0.25 }}>
-                          <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
-                            Taxes &amp; fees
-                          </Typography>
-                          <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
-                            $ {computedServiceFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </Typography>
-                        </Stack>
-                      )}
-                    </Box>
-                  )}
-                  <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
-                    Total price (paid via {bookingData.paymentMethod})
-                  </Typography>
-                  <Typography variant='h6' fontWeight={800} fontFamily={defaultPageFont} color='#27ae60'>
-                    $ {bookingData.total.toLocaleString()}
-                  </Typography>
-                </Box>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
-                    Booking ID
-                  </Typography>
-                  <Typography
-                    variant='body2'
-                    fontWeight={700}
-                    fontFamily={defaultPageFont}
-                    sx={{
-                      backgroundColor: '#f0faf4',
-                      color: '#27ae60',
-                      px: 1.5,
-                      py: 0.3,
-                      borderRadius: 1,
-                      display: 'inline-block',
-                      mt: 0.3
-                    }}
-                  >
-                    #{bookingId}
-                  </Typography>
-                </Box>
-              </Stack>
+              <Box sx={{ flex: 1, width: '100%' }}>
+                {selectedRooms.length > 0 && (
+                  <Box sx={{ mb: 1 }}>
+                    {selectedRooms.map((s, i) => (
+                      <Stack key={i} direction='row' justifyContent='space-between' sx={{ mb: 0.25 }}>
+                        <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                          {s.name} &times; {s.qty}
+                        </Typography>
+                        <Typography variant='caption' fontWeight={600} fontFamily={defaultPageFont}>
+                          ${' '}
+                          {((s.price || 0) * (s.qty || 1) * nights).toLocaleString('en-US', {
+                            minimumFractionDigits: 2
+                          })}
+                        </Typography>
+                      </Stack>
+                    ))}
+                    {computedServiceFee > 0 && (
+                      <Stack direction='row' justifyContent='space-between' sx={{ mb: 0.25 }}>
+                        <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                          Taxes & fees
+                        </Typography>
+                        <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                          $ {computedServiceFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </Typography>
+                      </Stack>
+                    )}
+                  </Box>
+                )}
+              </Box>
+              <Box
+                sx={{ flex: 1, width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                  Total price (paid via {bookingData.paymentMethod})
+                </Typography>
+                <Typography variant='h6' fontWeight={800} fontFamily={defaultPageFont} color='#27ae60'>
+                  $ {bookingData.total.toLocaleString()}
+                </Typography>
+              </Box>
+              <Box sx={{ mt: 10, textAlign: 'right', width: '100%' }}>
+                <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                  Booking ID
+                </Typography>
+                <Typography
+                  variant='body2'
+                  fontWeight={700}
+                  fontFamily={defaultPageFont}
+                  sx={{
+                    backgroundColor: '#f0faf4',
+                    color: '#27ae60',
+                    px: 1.5,
+                    py: 0.3,
+                    borderRadius: 1,
+                    display: 'inline-block',
+                    mt: 0.3
+                  }}
+                >
+                  #{bookingId}
+                </Typography>
+              </Box>
             </Box>
           </Card>
 

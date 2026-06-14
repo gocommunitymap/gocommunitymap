@@ -34,17 +34,16 @@ import { LoadingButton } from '@mui/lab'
 import { Icon } from '@iconify/react'
 import { toast } from 'react-hot-toast'
 import { getRoomDetail, updateRoomDetail, deleteRoomDetail } from 'src/store'
-import { getFeaturesAPI, getGlobalParametersAPI } from 'src/configs'
+import { getFeaturesAPI } from 'src/configs'
 import {
-  getGlobalParametersLOV,
   getGlobalParametersLOV_Extended,
-  FILE_DIRECTORIES,
-  GLOBAL_PARAMETER_TYPES
+  GLOBAL_PARAMETER_TYPES,
+  getGlobalParametersGroupsLOV,
+  getOptionsByTypeCode
 } from 'src/@core/utils'
 import FileUploaderMultiple from './fileUploaderMultiple'
 import DeleteModal from 'src/views/components/modal/delete-modal'
 
-// ── Shared style helpers (same pattern as hotel form) ──────────────────────────
 const sectionCard = color => ({
   borderRadius: 3,
   overflow: 'hidden',
@@ -81,7 +80,6 @@ const sectionIconBox = color => ({
   flexShrink: 0
 })
 
-// ── FaqsList ──────────────────────────────────────────────────────────────────
 const FaqsList = ({ ROOM_FAQS, setROOM_FAQS }) => {
   const theme = useTheme()
 
@@ -156,7 +154,7 @@ const FaqsList = ({ ROOM_FAQS, setROOM_FAQS }) => {
             label='Answer'
             multiline
             rows={2}
-            placeholder='e.g. Check-in is from 3:00 PM onwards.'
+            placeholder='e.g. Check-in starts at CHECK_IN_TIMESLOT_DESC and check-out is by CHECK_OUT_TIMESLOT_DESC.'
             value={item.ANSWER}
             onChange={e => handleChange(index, 'ANSWER', e.target.value)}
             InputProps={{ sx: { borderRadius: 1 } }}
@@ -193,7 +191,6 @@ const FaqsList = ({ ROOM_FAQS, setROOM_FAQS }) => {
   )
 }
 
-// ── Default values for room form ───────────────────────────────────────────────
 const roomDefaultValues = {
   ROOM_ID: null,
   PROPERTY_TYPE_ID: null,
@@ -213,7 +210,6 @@ const roomDefaultValues = {
   PETS_ALLOWED: false
 }
 
-// ── RoomDetailSection ──────────────────────────────────────────────────────────
 const RoomDetailSection = ({ propertyId }) => {
   const dispatch = useDispatch()
   const theme = useTheme()
@@ -250,17 +246,19 @@ const RoomDetailSection = ({ propertyId }) => {
     formState: { errors }
   } = useForm({ defaultValues: roomDefaultValues })
 
-  // ── Load options ──────────────────────────────────────────────────────────
   const loadOptions = async () => {
-    const [roomTypes, bedTypes, bathrooms, floors, units, mealPlans, cancellations] = await Promise.all([
-      getGlobalParametersLOV('ROOMTYPE'),
-      getGlobalParametersLOV('BEDTYPE'),
-      getGlobalParametersLOV('BATHROOMS'),
-      getGlobalParametersLOV('FLOORS'),
-      getGlobalParametersLOV('UNITS'),
-      getGlobalParametersLOV('MEELPLAN'),
-      getGlobalParametersLOV_Extended(GLOBAL_PARAMETER_TYPES.CANCELLATION_POLICY)
-    ])
+    const globalParametersLOVData = await getGlobalParametersGroupsLOV(
+      `${GLOBAL_PARAMETER_TYPES.ROOM_TYPE},${GLOBAL_PARAMETER_TYPES.BED_TYPE},${GLOBAL_PARAMETER_TYPES.BATHROOMS},${GLOBAL_PARAMETER_TYPES.FLOORS},${GLOBAL_PARAMETER_TYPES.UNITS},${GLOBAL_PARAMETER_TYPES.MEAL_PLAN},${GLOBAL_PARAMETER_TYPES.CANCELLATION_POLICY}`
+    )
+
+    const roomTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.ROOM_TYPE)
+    const bedTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.BED_TYPE)
+    const bathrooms = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.BATHROOMS)
+    const floors = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.FLOORS)
+    const units = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.UNITS)
+    const mealPlans = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.MEAL_PLAN)
+    const cancellations = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.CANCELLATION_POLICY)
+
     if (roomTypes?.length) setPropertyTypeOptions(roomTypes)
     if (bedTypes?.length) setBedTypeOptions(bedTypes)
     if (bathrooms?.length) setBathroomsOptions(bathrooms)
@@ -294,7 +292,7 @@ const RoomDetailSection = ({ propertyId }) => {
   }
 
   const loadFeatures = async (existingFeatures = []) => {
-    const response = await getFeaturesAPI({ ACTIVE: true, TYPE: 2 })
+    const response = await getFeaturesAPI({ ACTIVE: true, TYPE: 3 })
     if (!response?.data?.length) return
 
     const data = response.data.map(row => ({
@@ -323,7 +321,6 @@ const RoomDetailSection = ({ propertyId }) => {
     setFeaturesOptions(grouped)
   }
 
-  // ── Load rooms when propertyId is known ───────────────────────────────────
   useEffect(() => {
     loadOptions()
     loadFeatures()
@@ -332,7 +329,6 @@ const RoomDetailSection = ({ propertyId }) => {
     }
   }, [dispatch, propertyId])
 
-  // ── Feature helpers ───────────────────────────────────────────────────────
   const isCheckedAll = typeId => {
     const group = featuresOptions.find(g => g.FEATURES_TYPE_ID === typeId)
 
@@ -372,7 +368,6 @@ const RoomDetailSection = ({ propertyId }) => {
     setFeatures(allChecked)
   }
 
-  // ── Open edit ─────────────────────────────────────────────────────────────
   const handleEdit = row => {
     setValue('ROOM_ID', row.ROOM_ID)
     setValue(
@@ -438,7 +433,6 @@ const RoomDetailSection = ({ propertyId }) => {
     loadFeatures()
   }
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const onSubmit = data => {
     if (!propertyId) {
       toast.error('Please save the hotel record first before adding rooms.', { position: 'top-center' })
@@ -495,7 +489,6 @@ const RoomDetailSection = ({ propertyId }) => {
     })
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
   const handleConfirmDelete = row => {
     setDeleteStates({ ROOM_ID: row.ROOM_ID, PROPERTY_ID: propertyId })
     setDeleteModalOpen(true)
@@ -509,17 +502,17 @@ const RoomDetailSection = ({ propertyId }) => {
     })
   }
 
-  // ── DataGrid columns ──────────────────────────────────────────────────────
   const columns = [
     {
-      field: 'PROPERTY_TYPE_DESC',
+      field: 'ROOM_TYPE_DESC',
       headerName: 'Room Type',
       flex: 1.2,
-      minWidth: 120,
-      valueGetter: ({ row }) =>
-        propertyTypeOptions.find(o => String(o.value) === String(row.PROPERTY_TYPE_ID))?.label ??
-        row.PROPERTY_TYPE_DESC ??
-        row.PROPERTY_TYPE_ID
+      minWidth: 120
+
+      // valueGetter: row =>
+      //   propertyTypeOptions?.find(o => String(o.value) === String(row?.PROPERTY_TYPE_ID))?.label ??
+      //   row.PROPERTY_TYPE_DESC ??
+      //   row.PROPERTY_TYPE_ID
     },
     { field: 'BED_TYPE', headerName: 'Bed Type', flex: 1, minWidth: 100 },
     {
@@ -533,7 +526,7 @@ const RoomDetailSection = ({ propertyId }) => {
       headerName: 'Rate ($/night)',
       width: 120,
       type: 'number',
-      valueFormatter: ({ value }) => (value != null ? `$${value}` : '—')
+      valueFormatter: ({ value }) => (value != null ? `$${value}` : '-')
     },
     {
       field: 'actions',
@@ -559,10 +552,8 @@ const RoomDetailSection = ({ propertyId }) => {
 
   const rows = Array.isArray(roomDetailStore.data) ? roomDetailStore.data : []
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Master panel ───────────────────────────────────────────── */}
       <Card sx={sectionCard(theme.palette.info.main)}>
         <Box sx={sectionHeader(theme.palette.info.main)}>
           <Box sx={sectionInner(theme.palette.info.main)}>
@@ -595,23 +586,10 @@ const RoomDetailSection = ({ propertyId }) => {
               Save the hotel record above to enable room management.
             </Typography>
           )}
-          <DataGrid
-            autoHeight
-            rows={rows}
-            columns={columns}
-            getRowId={row => row.ROOM_ID}
-            pageSize={5}
-            rowsPerPageOptions={[5, 10, 25]}
-            disableSelectionOnClick
-            sx={{
-              border: 'none',
-              '& .MuiDataGrid-columnHeaders': { backgroundColor: alpha(theme.palette.info.main, 0.06) }
-            }}
-          />
+          <DataGrid autoHeight rows={rows} columns={columns} getRowId={row => row.ROOM_ID} />
         </CardContent>
       </Card>
 
-      {/* ── Delete confirm ──────────────────────────────────────────── */}
       <DeleteModal
         isOpen={deleteModalOpen}
         title={`Delete Room`}
@@ -619,7 +597,6 @@ const RoomDetailSection = ({ propertyId }) => {
         onDelete={onDelete}
       />
 
-      {/* ── Room form dialog ────────────────────────────────────────── */}
       <Dialog open={modalOpen} onClose={handleClose} maxWidth='md' fullWidth scroll='paper'>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
           <Icon icon='tabler:door' style={{ fontSize: 22, color: theme.palette.info.main }} />
@@ -636,7 +613,6 @@ const RoomDetailSection = ({ propertyId }) => {
         <DialogContent>
           <form id='room-form' onSubmit={handleSubmit(onSubmit)} autoComplete='off'>
             <Grid container spacing={3} sx={{ mt: 0 }}>
-              {/* ── Room Details ─────────────────────────────────────── */}
               <Grid item xs={12}>
                 <Card sx={sectionCard(theme.palette.primary.main)}>
                   <Box sx={sectionHeader(theme.palette.primary.main)}>
@@ -710,11 +686,11 @@ const RoomDetailSection = ({ propertyId }) => {
                                   v ? (
                                     bedTypeOptions.find(o => o.value === v)?.label || v
                                   ) : (
-                                    <Typography color='text.disabled'>Select bed type…</Typography>
+                                    <Typography color='text.disabled'>Select bed type</Typography>
                                   )
                                 }
                               >
-                                <MenuItem value=''>— Not set —</MenuItem>
+                                <MenuItem value=''>- Not set -</MenuItem>
                                 {bedTypeOptions.map(opt => (
                                   <MenuItem key={opt.value} value={opt.value}>
                                     {opt.label}
@@ -788,7 +764,6 @@ const RoomDetailSection = ({ propertyId }) => {
                 </Card>
               </Grid>
 
-              {/* ── Pricing ──────────────────────────────────────────── */}
               <Grid item xs={12}>
                 <Card sx={sectionCard(theme.palette.warning.main)}>
                   <Box sx={sectionHeader(theme.palette.warning.main)}>
@@ -839,7 +814,6 @@ const RoomDetailSection = ({ propertyId }) => {
                 </Card>
               </Grid>
 
-              {/* ── Photos ───────────────────────────────────────────── */}
               <Grid item xs={12}>
                 <Card sx={sectionCard(theme.palette.error.main)}>
                   <Box sx={sectionHeader(theme.palette.error.main)}>
@@ -852,7 +826,7 @@ const RoomDetailSection = ({ propertyId }) => {
                           Photos
                         </Typography>
                         <Typography variant='caption' color='text.secondary' sx={{ mt: 0.5, display: 'block' }}>
-                          Upload room photos — showcase the space to attract more bookings
+                          Upload room photos - showcase the space to attract more bookings
                         </Typography>
                       </Box>
                     </Box>
@@ -872,7 +846,6 @@ const RoomDetailSection = ({ propertyId }) => {
                 </Card>
               </Grid>
 
-              {/* ── Video / Virtual Tour ─────────────────────────────── */}
               <Grid item xs={12}>
                 <Card sx={sectionCard(theme.palette.secondary.main)}>
                   <Box sx={sectionHeader(theme.palette.secondary.main)}>
@@ -885,7 +858,7 @@ const RoomDetailSection = ({ propertyId }) => {
                           Video / Virtual Tour
                         </Typography>
                         <Typography variant='caption' color='text.secondary' sx={{ mt: 0.5, display: 'block' }}>
-                          Paste a YouTube, Vimeo or 360° tour link
+                          Paste a YouTube, Vimeo or 360Â° tour link
                         </Typography>
                       </Box>
                     </Box>
@@ -915,7 +888,6 @@ const RoomDetailSection = ({ propertyId }) => {
                 </Card>
               </Grid>
 
-              {/* ── Description ──────────────────────────────────────── */}
               <Grid item xs={12}>
                 <Card sx={sectionCard(theme.palette.success.main)}>
                   <Box sx={sectionHeader(theme.palette.success.main)}>
@@ -1047,7 +1019,6 @@ const RoomDetailSection = ({ propertyId }) => {
                 </Card>
               </Grid>
 
-              {/* ── Amenities & Features ─────────────────────────────── */}
               <Grid item xs={12}>
                 <Card sx={sectionCard(theme.palette.warning.main)}>
                   <Box sx={sectionHeader(theme.palette.warning.main)}>
@@ -1156,7 +1127,6 @@ const RoomDetailSection = ({ propertyId }) => {
                 </Card>
               </Grid>
 
-              {/* ── Policies ──────────────────────────────────────── */}
               <Grid item xs={12}>
                 <Card sx={sectionCard(theme.palette.secondary.main)}>
                   <Box sx={sectionHeader(theme.palette.secondary.main)}>
@@ -1209,11 +1179,11 @@ const RoomDetailSection = ({ propertyId }) => {
                                       {mealPlanOptions.find(o => o.value === v)?.label || v}
                                     </Box>
                                   ) : (
-                                    <Typography color='text.disabled'>Select plan…</Typography>
+                                    <Typography color='text.disabled'>Select plan</Typography>
                                   )
                                 }
                               >
-                                <MenuItem value=''>— Not set —</MenuItem>
+                                <MenuItem value=''>- Not set -</MenuItem>
                                 {mealPlanOptions.map(opt => (
                                   <MenuItem key={opt.value} value={opt.value}>
                                     <Typography variant='body2' fontWeight={600}>
@@ -1249,7 +1219,7 @@ const RoomDetailSection = ({ propertyId }) => {
                                   </InputAdornment>
                                 }
                                 renderValue={v => {
-                                  if (!v) return <Typography color='text.disabled'>Select policy…</Typography>
+                                  if (!v) return <Typography color='text.disabled'>Select policy</Typography>
                                   const opt = cancellationOptions.find(o => o.value === v)
 
                                   return (
@@ -1267,7 +1237,7 @@ const RoomDetailSection = ({ propertyId }) => {
                                   )
                                 }}
                               >
-                                <MenuItem value=''>— Not set —</MenuItem>
+                                <MenuItem value=''>- Not set -</MenuItem>
                                 {cancellationOptions.map(opt => (
                                   <MenuItem key={opt.value} value={opt.value}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -1321,8 +1291,6 @@ const RoomDetailSection = ({ propertyId }) => {
                   </CardContent>
                 </Card>
               </Grid>
-
-              {/* ── FAQs ──────────────────────────────────────────── */}
               <Grid item xs={12}>
                 <Card sx={sectionCard(theme.palette.primary.main)}>
                   <Box sx={sectionHeader(theme.palette.primary.main)}>

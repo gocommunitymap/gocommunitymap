@@ -25,6 +25,13 @@ export const columns = [
   {
     flex: 1,
     minWidth: 120,
+    headerName: 'ROOMS',
+    field: 'PARAMETER_CODE_5',
+    renderCell: ({ row }) => getFlagLabel(row.PARAMETER_CODE_5)
+  },
+  {
+    flex: 1,
+    minWidth: 120,
     headerName: 'ACTIVE',
     field: 'ACTIVE',
     renderCell: ({ row }) => {

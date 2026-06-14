@@ -22,6 +22,8 @@ namespace BusinessLogicLayer.Models
         public string? PARAMETER_DESCRIPTION_3 { get; set; }
         public int? PARAMETER_CODE_4 { get; set; }
         public string? PARAMETER_DESCRIPTION_4 { get; set; }
+        public string? PARAMETER_CODE_5 { get; set; }
+        public string? PARAMETER_DESCRIPTION_5 { get; set; }
         public bool? ACTIVE { get; set; }
         public bool? ALLOWED { get; set; }
     }

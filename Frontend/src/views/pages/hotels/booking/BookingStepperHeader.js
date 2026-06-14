@@ -1,10 +1,14 @@
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, IconButton, Stack, Typography } from '@mui/material'
 import { Icon } from '@iconify/react'
 import Link from 'next/link'
 import CompanyLogo from 'src/@core/components/company-logo'
 import { defaultPageFont, BOOKING_STEPS } from 'src/@core/utils'
+import { useAuth } from 'src/hooks/useAuth'
+import themeConfig from 'src/configs/themeConfig'
 
 const BookingStepperHeader = ({ currentStep = 1 }) => {
+  const { user, logoutNoRedirect } = useAuth()
+
   return (
     <Box
       sx={{
@@ -32,7 +36,7 @@ const BookingStepperHeader = ({ currentStep = 1 }) => {
           <Stack direction='row' spacing={1.2} alignItems='center'>
             <CompanyLogo width='32' />
             <Typography sx={{ color: '#0b1730', fontSize: '1rem', fontWeight: 800, fontFamily: defaultPageFont }}>
-              GoCommunityMap
+              {themeConfig.templateName}
             </Typography>
           </Stack>
         </Link>
@@ -41,6 +45,22 @@ const BookingStepperHeader = ({ currentStep = 1 }) => {
           <Typography variant='caption' sx={{ color: '#666', fontWeight: 500 }}>
             Secure
           </Typography>
+          {user && (
+            <Typography variant='caption' sx={{ color: '#666', fontWeight: 500 }}>
+              <IconButton onClick={() => logoutNoRedirect()}>
+                <Icon icon='tabler:logout' style={{ fontSize: 16 }} />
+                <Typography
+                  variant='caption'
+                  sx={{
+                    fontSize: '9px !important',
+                    ml: 0.5
+                  }}
+                >
+                  Logout
+                </Typography>
+              </IconButton>
+            </Typography>
+          )}
         </Stack>
       </Box>
 
@@ -83,7 +103,7 @@ const BookingStepperHeader = ({ currentStep = 1 }) => {
                     {step.label}
                   </Typography>
                 </Stack>
-                {idx < steps.length - 1 && (
+                {idx < BOOKING_STEPS.length - 1 && (
                   <Box
                     sx={{
                       width: { xs: 40, md: 80 },

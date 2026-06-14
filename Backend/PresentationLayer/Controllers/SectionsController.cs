@@ -88,7 +88,6 @@ namespace PresentationLayer.Controllers
         {
             Sections section = new Sections();
             section.SECTION_ID = SECTION_ID;
-            section.USER = USER;
             
             try
             {

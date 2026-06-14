@@ -29,7 +29,8 @@ import BookingStepperHeader from 'src/views/pages/hotels/booking/BookingStepperH
 import BookingSummaryCard from 'src/views/pages/hotels/booking/BookingSummaryCard'
 import { defaultPageFont } from 'src/@core/utils'
 import { axios, postRequest } from 'src/configs/services/http'
-import { API_URL } from 'src/configs'
+import { API_URL, createBookingAPI, listingTypes } from 'src/configs'
+import themeConfig from 'src/configs/themeConfig'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
@@ -98,6 +99,32 @@ const PaymentMethodTab = ({ icon, label, selected }) => (
   </Box>
 )
 
+const normalizeRoomDetails = selectedRooms => {
+  if (!Array.isArray(selectedRooms)) return []
+
+  return selectedRooms
+    .map(room => {
+      const quantity = Number(room?.qty ?? room?.quantity ?? room?.QUANTITY) || 0
+      const unitPrice = Number(room?.price ?? room?.PRICE) || 0
+      const roomIdValue = Number(room?.roomId ?? room?.ROOM_ID ?? room?.id)
+      const roomType = room?.roomType || room?.ROOM_TYPE_DESC || room?.name || room?.summary || room?.SUMMARY || 'Room'
+      const summary = room?.summary || room?.SUMMARY || roomType
+      const maxGuestsValue = Number(room?.maxGuests ?? room?.MAX_GUESTS)
+
+      return {
+        ROOM_ID: Number.isFinite(roomIdValue) ? roomIdValue : null,
+        ROOM_TYPE: roomType,
+        SUMMARY: summary,
+        PRICE: unitPrice,
+        QUANTITY: quantity,
+        MAX_GUESTS: Number.isFinite(maxGuestsValue) ? maxGuestsValue : 0,
+        MEAL_PLAN: room?.mealPlan ?? room?.MEAL_PLAN ?? null,
+        CANCELLATION_POLICY: room?.cancellationPolicy ?? room?.CANCELLATION_POLICY ?? null
+      }
+    })
+    .filter(room => room.QUANTITY > 0)
+}
+
 // ---- Inner component using Stripe hooks ----
 const StripePaymentContent = ({ bookingData, selectedRooms = [] }) => {
   const stripe = useStripe()
@@ -136,6 +163,15 @@ const StripePaymentContent = ({ bookingData, selectedRooms = [] }) => {
       let paymentIntentId = ''
 
       if (paymentMethod === 'card') {
+        // Guard: ensure card element is mounted before proceeding
+        const cardElement = elements.getElement(CardNumberElement)
+        if (!cardElement) {
+          setStripeError('Card details are not ready. Please re-enter your card information.')
+          setLoading(false)
+
+          return
+        }
+
         // Step 1: Create PaymentIntent via backend
         const piResponse = await axios({
           method: 'post',
@@ -150,13 +186,13 @@ const StripePaymentContent = ({ bookingData, selectedRooms = [] }) => {
         const piJson = piResponse.data
 
         if (!piJson?.clientSecret) {
-          throw new Error('Failed to initiate payment')
+          throw new Error('Failed to initiate payment. Please try again.')
         }
 
         // Step 2: Confirm card payment with Stripe (must run client-side)
         const { error, paymentIntent } = await stripe.confirmCardPayment(piJson.clientSecret, {
           payment_method: {
-            card: elements.getElement(CardNumberElement),
+            card: cardElement,
             billing_details: {
               name: cardholderName,
               email: bookingData.guestEmail
@@ -176,12 +212,16 @@ const StripePaymentContent = ({ bookingData, selectedRooms = [] }) => {
       // Step 3: Persist booking via Next.js server-side route
       const paymentMethodLabel =
         paymentMethod === 'card' ? 'Credit Card' : paymentMethod === 'paypal' ? 'PayPal' : 'Google Pay'
+      const roomDetails = normalizeRoomDetails(selectedRooms)
 
       const payload = {
+        LISTING_TYPE_ID: listingTypes.HOTELS.LISTING_TYPE_ID,
         PROPERTY_ID: bookingData.propertyId,
         PROPERTY_NAME: bookingData.propertyName,
         CHECK_IN: bookingData.checkIn,
         CHECK_OUT: bookingData.checkOut,
+        CHECK_IN_TIMESLOT_DESC: bookingData.checkInTime || null,
+        CHECK_OUT_TIMESLOT_DESC: bookingData.checkOutTime || null,
         NIGHTS: bookingData.nights,
         ADULTS: bookingData.adults,
         CHILDREN: bookingData.children,
@@ -195,17 +235,26 @@ const StripePaymentContent = ({ bookingData, selectedRooms = [] }) => {
         GUEST_COUNTRY: bookingData.guestCountry,
         GUEST_PHONE: bookingData.guestPhone,
         ARRIVAL_TIME: bookingData.arrivalTime,
+        BOOKING_FOR: bookingData.bookingFor,
+        TRAVEL_FOR_WORK: bookingData.travelForWork,
+        SPECIAL_REQUESTS: bookingData.specialRequests,
+        AGREE_TERMS: agreeTerms ?? false,
+        MARKETING_CONSENT: marketingConsent ?? false,
         PAYMENT_METHOD: paymentMethodLabel,
-        PAYMENT_INTENT_ID: paymentIntentId
+        PAYMENT_INTENT_ID: paymentIntentId,
+        STATUS: paymentMethod == 'card' ? 'CONFIRMED' : 'PENDING',
+        ROOM_IDS: roomDetails.map(room => room.ROOM_ID).toString(),
+        ROOM_DETAILS: JSON.stringify(roomDetails) // You can customize this to include more room details as needed
       }
 
-      const bookingResponse = await postRequest(API_URL.CREATE_BOOKING, {
-        data: payload,
-        config: { toast: false }
-      })
+      const bookingResponse = await createBookingAPI(payload)
+      if (!bookingResponse) {
+        setLoading(false)
 
+        return
+      }
       const json = bookingResponse?.data
-      const bookingRef = json?.[0]?.BOOKING_NO || ''
+      const bookingRef = json?.[0]?.DETAIL || ''
 
       const params = new URLSearchParams({
         ...Object.fromEntries(Object.entries(bookingData).map(([k, v]) => [k, String(v)])),
@@ -478,7 +527,7 @@ const StripePaymentContent = ({ bookingData, selectedRooms = [] }) => {
                   Your payment is secure
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
-                  We use 256-bit SSL encryption to protect your payment information.
+                  We use SSL encryption to protect your payment information.
                 </Typography>
               </Box>
             </Stack>
@@ -530,6 +579,8 @@ const HotelBookingPayment = () => {
     propertyName: q.propertyName || 'Hotel Property',
     propertyImage: q.propertyImage || '',
     place: q.place || '',
+    checkInTime: q.checkInTime || '',
+    checkOutTime: q.checkOutTime || '',
     pricePerNight,
     checkIn: q.checkIn || '',
     checkOut: q.checkOut || '',
@@ -545,14 +596,17 @@ const HotelBookingPayment = () => {
     guestEmail: q.guestEmail || '',
     guestCountry: q.guestCountry || '',
     guestPhone: q.guestPhone || '',
-    arrivalTime: q.arrivalTime || ''
+    arrivalTime: q.arrivalTime || '',
+    bookingFor: q.bookingFor || 'self',
+    travelForWork: q.travelForWork || 'no',
+    specialRequests: q.specialRequests || ''
   }
 
   const selectedRoomsForChild = selectedRooms
 
   return (
     <>
-      <SeoHead title='Payment – GoCommunityMap' description='Complete your hotel booking payment.' />
+      <SeoHead title={`Payment – ${themeConfig.templateName}`} description='Complete your hotel booking payment.' />
       <BookingStepperHeader currentStep={3} />
 
       <Box sx={{ backgroundColor: '#f8fafc', minHeight: '100vh', pb: 8 }}>

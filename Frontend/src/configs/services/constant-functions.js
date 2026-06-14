@@ -22,7 +22,8 @@ export const updateParams = params => {
   try {
     const usercode = JSON.parse(decUserData(window.localStorage.getItem('userData'))).usercode
 
-    return { ...params, USER: usercode }
+    // return { ...params, USER: usercode }
+    return params
   } catch (error) {
     return params
   }

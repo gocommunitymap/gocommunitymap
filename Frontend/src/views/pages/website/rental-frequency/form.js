@@ -57,6 +57,29 @@ export const ModalForm = ({ control, states, handleDiscard, onSubmit, handleSubm
                   />
                 </FormControl>
               </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <Controller
+                    name='PARAMETER_CODE_4'
+                    control={control}
+                    rules={{
+                      required: true
+                    }}
+                    render={({ field: { value, onChange } }) => (
+                      <TextField
+                        value={value}
+                        type='number'
+                        label='FREQUENCY DAYS'
+                        onChange={onChange}
+                        placeholder='PLEASE ENTER FREQUENCY DAYS'
+                        size='small'
+                        error={Boolean(errors.PARAMETER_CODE_4)}
+                        helperText={Boolean(errors.PARAMETER_CODE_4) && 'Required'}
+                      />
+                    )}
+                  />
+                </FormControl>
+              </Grid>
 
               <Grid item xs={12} display='flex' justifyContent='left'>
                 <InputLabel style={{ marginTop: 9, marginRight: 5 }}>ACTIVE</InputLabel>

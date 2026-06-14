@@ -32,7 +32,7 @@ import {
 } from 'src/configs'
 import { hotelFilterConfig, rentalFilterConfig } from 'src/@core/utils'
 
-const OPTION_TYPES = ['radio', 'checkbox']
+const OPTION_TYPES = ['radio', 'checkbox', 'range']
 
 const defaultValues = {
   ID: null,
@@ -146,28 +146,36 @@ const GroupSection = ({ group, refreshKey }) => {
 
   const columns = [
     ...baseColumns,
-    {
-      sortable: false,
-      flex: 1,
-      minWidth: 100,
-      align: 'right',
-      headerAlign: 'right',
-      headerName: 'Action',
-      renderCell: ({ row }) => (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title='Edit' placement='top'>
-            <IconButton size='small' onClick={() => openEdit(row)}>
-              <Icon icon='tabler:edit' />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title='Delete' placement='top'>
-            <IconButton size='small' onClick={() => setDeleteModal({ open: true, row })}>
-              <Icon icon='tabler:trash' />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
-    }
+    ...(Boolean(group?.isEditable) || Boolean(group?.isDeletable)
+      ? [
+          {
+            sortable: false,
+            minWidth: 150,
+            align: 'right',
+            headerAlign: 'right',
+            headerName: 'Action',
+            renderCell: ({ row }) => (
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {Boolean(group?.isEditable) && (
+                  <Tooltip title='Edit' placement='top'>
+                    <IconButton color='primary' size='small' onClick={() => openEdit(row)}>
+                      <Icon icon='tabler:edit' />
+                    </IconButton>
+                  </Tooltip>
+                )}
+
+                {Boolean(group?.isDeletable) && (
+                  <Tooltip title='Delete' placement='top'>
+                    <IconButton color='error' size='small' onClick={() => setDeleteModal({ open: true, row })}>
+                      <Icon icon='tabler:trash' />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            )
+          }
+        ]
+      : [])
   ]
 
   return (
@@ -194,9 +202,12 @@ const GroupSection = ({ group, refreshKey }) => {
 
         <AccordionDetails sx={{ pt: 0 }}>
           <Box mb={1.5} display='flex' justifyContent='flex-end'>
-            <Button size='small' variant='contained' startIcon={<Icon icon='tabler:plus' />} onClick={openAdd}>
-              Add Option
-            </Button>
+            <Typography></Typography>
+            {(Boolean(group?.isAddable) && group.type !== 'range') || (group.type === 'range' && rows.length < 2) ? (
+              <Button size='small' variant='contained' startIcon={<Icon icon='tabler:plus' />} onClick={openAdd}>
+                Add Option
+              </Button>
+            ) : null}
           </Box>
           <DataGrid
             rowSelection={false}
@@ -208,7 +219,6 @@ const GroupSection = ({ group, refreshKey }) => {
             initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
             pageSizeOptions={[10, 25]}
             density='compact'
-            sx={{ '& .MuiDataGrid-columnHeaders': { backgroundColor: '#f5f8fd' } }}
           />
         </AccordionDetails>
       </Accordion>
@@ -258,7 +268,6 @@ const FilterConfig = () => {
         <Card>
           <CardHeader
             title='Home Page Filter Configuration'
-            subheader='Options are stored in the Global Parameters table. Each group is identified by its TYPE_CODE (prefix FTR_, max 14 chars).'
             action={
               <Tooltip title='Refresh all groups'>
                 <IconButton onClick={() => setRefreshKey(k => k + 1)}>

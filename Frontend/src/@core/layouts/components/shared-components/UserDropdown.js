@@ -109,9 +109,9 @@ const UserDropdown = props => {
             ></Badge>
             <Box sx={{ display: 'flex', ml: 3, alignItems: 'flex-start', flexDirection: 'column' }}>
               <Typography sx={{ fontWeight: 600 }}>{user.fullName}</Typography>
-              <Typography variant='body2' sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>
+              {/* <Typography variant='body2' sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>
                 {user.roleName}
-              </Typography>
+              </Typography> */}
             </Box>
           </Box>
         </Box>
@@ -128,10 +128,10 @@ const UserDropdown = props => {
             Saved Properties
           </Box>
         </MenuItem>
-        <MenuItem sx={{ p: 0 }} onClick={() => handleDropdownClose('/savedsearch')}>
+        <MenuItem sx={{ p: 0 }} onClick={() => handleDropdownClose('/account/bookings')}>
           <Box sx={styles}>
-            <Icon icon='tabler:search' />
-            Saved Searches
+            <Icon icon='tabler:calendar' />
+            My Bookings
           </Box>
         </MenuItem>
 

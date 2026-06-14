@@ -15,21 +15,23 @@ import {
   Stack,
   Typography
 } from '@mui/material'
-import { forwardRef, useState } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import format from 'date-fns/format'
 import differenceInCalendarDays from 'date-fns/differenceInCalendarDays'
 import ReactDatePicker from 'react-datepicker'
 import IconifyIcon from 'src/@core/components/icon'
 import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
 import RoomsDetailTable from '../../RoomsDetailTable'
+import themeConfig from 'src/configs/themeConfig'
+import { useRouter } from 'next/router'
+import { getHotelBookingCalendarAPI } from 'src/configs'
 
-/* ── Price Match Guarantee dialog ─────────────────────────── */
 const pmgBenefits = [
-  'We guarantee the lowest price on every booking made through GoCommunityMap.',
+  `We guarantee the lowest price on every booking made through ${themeConfig.templateName}.`,
   'If you find a lower rate for the same property, dates, and guests within 24 hours of booking, we will match it.',
   'Simply contact our support team with a screenshot of the lower price from a verified booking site.',
   'The guarantee applies to identical room types, cancellation policies, and meal inclusions.',
-  'No hidden fees — the price you see is the price you pay.'
+  'No hidden fees - the price you see is the price you pay.'
 ]
 
 const PriceMatchDialog = ({ open, onClose }) => (
@@ -56,7 +58,7 @@ const PriceMatchDialog = ({ open, onClose }) => (
         }}
       >
         <Typography variant='subtitle1' fontWeight={700} color='#1b5e20' gutterBottom>
-          We match the lowest price — guaranteed.
+          We match the lowest price - guaranteed.
         </Typography>
         <Typography variant='body2' color='#388e3c'>
           Book with confidence knowing you&apos;re getting the best deal available.
@@ -89,12 +91,12 @@ const PriceMatchDialog = ({ open, onClose }) => (
   </Dialog>
 )
 
-/* ── Date range trigger button ─────────────────────────────── */
 const DateRangeInput = forwardRef(({ value, onClick }, ref) => (
   <Box
     ref={ref}
     onClick={onClick}
     sx={{
+      width: '100%',
       cursor: 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
@@ -114,10 +116,8 @@ const DateRangeInput = forwardRef(({ value, onClick }, ref) => (
 ))
 DateRangeInput.displayName = 'DateRangeInput'
 
-/* ── Overview Tab ──────────────────────────────────────────── */
 const Overview = ({
   data,
-  rooms = [],
   startDate,
   endDate,
   adults,
@@ -125,16 +125,19 @@ const Overview = ({
   roomCount,
   onSearchChange,
   onRoomSelect,
-  onReserve
+  onReserve,
+  priceMap,
+  updatedRooms,
+  getBookingCalendar
 }) => {
   const [guestAnchorEl, setGuestAnchorEl] = useState(null)
   const [pmgOpen, setPmgOpen] = useState(false)
 
-  const nights = startDate && endDate ? Math.max(1, differenceInCalendarDays(endDate, startDate)) : 1
+  // const nights = startDate && endDate ? Math.max(1, differenceInCalendarDays(endDate, startDate)) : 1
 
   const dateLabel =
     startDate && endDate
-      ? `${format(startDate, 'MMM dd').toUpperCase()} – ${format(endDate, 'MMM dd').toUpperCase()}`
+      ? `${format(startDate, 'MMM dd').toUpperCase()} - ${format(endDate, 'MMM dd').toUpperCase()}`
       : null
 
   const guestLabel = `${adults} adult${adults !== 1 ? 's' : ''}, ${childCount} children, ${roomCount} room${
@@ -148,6 +151,12 @@ const Overview = ({
 
   const updateCount = (field, current, delta, min = 0) => {
     onSearchChange({ [field]: Math.max(min, current + delta) })
+  }
+
+  const handleMonthChange = date => {
+    const from = date || null
+    const to = date ? new Date(date.getFullYear(), date.getMonth() + 2, 0) : null
+    getBookingCalendar(from, to)
   }
 
   return (
@@ -188,7 +197,7 @@ const Overview = ({
       {/* Search Details */}
       <Box sx={{ border: '1px solid #e8e8e8', borderRadius: 2, p: 2.5, mb: 3 }}>
         <Grid container spacing={2} alignItems='center'>
-          <Grid item xs={12} md={5}>
+          <Grid item xs={12} md={6}>
             <DatePickerWrapper>
               <ReactDatePicker
                 selectsRange
@@ -197,15 +206,42 @@ const Overview = ({
                 endDate={endDate}
                 onChange={handleDateChange}
                 minDate={new Date()}
+                onMonthChange={handleMonthChange}
                 customInput={<DateRangeInput value={dateLabel} />}
-                monthsShown={1}
+                monthsShown={2}
+                renderDayContents={(day, date) => {
+                  const key = format(date, 'yyyy-MM-dd')
+                  const price = priceMap[key]
+
+                  return (
+                    <div
+                      style={{
+                        padding: 5,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        lineHeight: 1.1
+                      }}
+                    >
+                      <span>{day}</span>
+
+                      {/* PRICE BELOW DATE */}
+                      {price ? (
+                        <span style={{ fontSize: 10, color: '#10b981' }}>${price}</span>
+                      ) : (
+                        <span style={{ fontSize: 10, opacity: 0.3 }}>-</span>
+                      )}
+                    </div>
+                  )
+                }}
               />
             </DatePickerWrapper>
           </Grid>
 
-          <Grid item xs={12} md={5}>
+          <Grid item xs={12} md={6}>
             <Box
               sx={{
+                width: '100%',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -226,7 +262,7 @@ const Overview = ({
             </Box>
           </Grid>
 
-          <Grid item xs={12} md={2} display='flex' justifyContent={{ md: 'flex-end', xs: 'flex-start' }}>
+          {/* <Grid item xs={12} md={2} display='flex' justifyContent={{ md: 'flex-end', xs: 'flex-start' }}>
             <Button
               variant='contained'
               size='small'
@@ -239,11 +275,11 @@ const Overview = ({
                 textTransform: 'capitalize',
                 '&:hover': { backgroundColor: '#229954' }
               }}
-              onClick={() => setGuestAnchorEl(null)}
+              onClick={() => onSearchChange({ startDate, endDate, adults, childCount, roomCount })}
             >
               Change Search
             </Button>
-          </Grid>
+          </Grid> */}
         </Grid>
       </Box>
 
@@ -251,7 +287,7 @@ const Overview = ({
 
       <RoomsDetailTable
         data={data}
-        rooms={rooms}
+        rooms={updatedRooms}
         searchParams={{
           checkIn: startDate ? format(startDate, 'yyyy-MM-dd') : '',
           checkOut: endDate ? format(endDate, 'yyyy-MM-dd') : '',

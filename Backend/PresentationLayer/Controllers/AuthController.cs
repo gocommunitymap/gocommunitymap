@@ -19,13 +19,13 @@ namespace PresentationLayer.Controllers
     {
 
         private readonly IAuth _authRepo;
-        private readonly IConfiguration _configuration;
+        private readonly ILogService _logService;
 
 
-        public AuthController(IAuth authRepo, IConfiguration configuration)
+        public AuthController(IAuth authRepo, IConfiguration configuration, ILogService logService)
         {
             _authRepo = authRepo;
-            _configuration = configuration;
+            _logService = logService;
         }
 
 
@@ -75,7 +75,8 @@ namespace PresentationLayer.Controllers
         [HttpPost]
         public object GenerateToken(Login user)
         {
-                var result = _authRepo.GenerateToken(user);
+            _logService.Add(user.email, "AuthController", "GenerateToken");
+            var result = _authRepo.GenerateToken(user);
             try
             {
 
@@ -95,6 +96,8 @@ namespace PresentationLayer.Controllers
             }
             catch (Exception ex)
             {
+                _logService.Add(user.email, "AuthController", "error"+ ex.Message);
+
                 if (((DataAccessLayer.Models.Message)result).ERROR != null)
                 {
                     return BadRequest((DataAccessLayer.Models.Message)result);

@@ -88,4 +88,3 @@ const CustomCheckbox = props => {
 }
 
 export default CustomCheckbox
-

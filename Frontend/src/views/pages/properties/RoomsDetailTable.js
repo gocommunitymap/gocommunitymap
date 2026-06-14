@@ -20,7 +20,7 @@ import {
   useTheme
 } from '@mui/material'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import IconifyIcon from 'src/@core/components/icon'
 import { getGlobalParametersLOV, getGlobalParametersLOV_Extended, GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
 import { getGlobalParametersAPI } from 'src/configs'
@@ -56,7 +56,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
   const [appsetParams, setAppsetParams] = useState([])
 
   useEffect(() => {
-    getGlobalParametersAPI({ TYPE_CODE: 'APPSET' })
+    getGlobalParametersAPI({ TYPE_CODE: GLOBAL_PARAMETER_TYPES.APPLICATION_SETTING })
       .then(res => setAppsetParams(res?.data || []))
       .catch(() => {})
     getGlobalParametersLOV(GLOBAL_PARAMETER_TYPES.MEAL_PLAN).then(d => {
@@ -156,6 +156,14 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
 
   // const selectedRooms = JSON.parse(data?.SELECTED_ROOMS || '[]')
   const [selectedRooms, setSelectedRooms] = useState([])
+  const [expandedRooms, setExpandedRooms] = useState({}) // Track which rooms have expanded features
+
+  const toggleRoomFeatures = roomId => {
+    setExpandedRooms(prev => ({
+      ...prev,
+      [roomId]: !prev[roomId]
+    }))
+  }
 
   const handleSelectionChange = (room, quantity) => {
     const roomId = room.ROOM_ID
@@ -171,6 +179,15 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
     if (onRoomSelect) onRoomSelect(room, quantity)
   }
 
+  useEffect(() => {
+    rooms.forEach(room => {
+      const selected = selectedRooms.find(r => r.roomId === room.ROOM_ID)
+      if (selected) {
+        handleSelectionChange(room, selected.quantity)
+      }
+    })
+  }, [rooms])
+
   if (!roomDetails.length) return null
 
   // Mobile: stacked card layout
@@ -179,7 +196,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
       <Stack spacing={2}>
         {roomDetails.map((room, index) => {
           const roomFeatures = safeParseJSON(room.ROOM_FEATURES, featureList)
-          const availableRooms = room.ROOMS_QUANTITY ?? 1
+          const availableRooms = room.AVAILABLE_QUANTITY ?? 1
 
           return (
             <Paper
@@ -192,7 +209,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
                 <Typography variant='subtitle1' fontWeight={700} sx={{ flex: 1, mr: 1 }}>
                   {room.ROOM_TYPE_DESC}
                 </Typography>
-                {availableRooms <= 3 && (
+                {availableRooms <= 20 && (
                   <Chip
                     variant='filled'
                     size='small'
@@ -210,16 +227,35 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
 
               {/* Features */}
               {roomFeatures.length > 0 && (
-                <Grid container spacing={1} mb={1.5}>
-                  {roomFeatures.map((feature, i) => (
-                    <Grid item xs={6} key={i} display='flex' alignItems='flex-start' gap={0.5}>
-                      <IconifyIcon icon='tabler:circle-check' width={10} color='#1976d2' />
-                      <Typography fontSize={9} color='primary.main'>
-                        {feature.FEATURES}
-                      </Typography>
-                    </Grid>
-                  ))}
-                </Grid>
+                <>
+                  <Grid container spacing={1} mb={1.5}>
+                    {roomFeatures.slice(0, expandedRooms[room.ROOM_ID] ? roomFeatures.length : 10).map((feature, i) => (
+                      <Grid item xs={6} key={i} display='flex' alignItems='flex-start' gap={0.5}>
+                        <IconifyIcon icon='tabler:circle-check' width={10} color='#1E4D2B' />
+                        <Typography fontSize={9} color='primary.main'>
+                          {feature.FEATURES}
+                        </Typography>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  {roomFeatures.length > 10 && (
+                    <Button
+                      size='small'
+                      fullWidth
+                      sx={{
+                        fontSize: '9px',
+                        fontWeight: 600,
+                        color: '#1E4D2B',
+                        textTransform: 'none',
+                        mb: 1.5,
+                        '&:hover': { backgroundColor: '#e3f2fd' }
+                      }}
+                      onClick={() => toggleRoomFeatures(room.ROOM_ID)}
+                    >
+                      {expandedRooms[room.ROOM_ID] ? '− Show Less' : `+ Show More (${roomFeatures.length - 10})`}
+                    </Button>
+                  )}
+                </>
               )}
 
               <Divider sx={{ my: 1.5 }} />
@@ -242,7 +278,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
                     </Typography>
                   </Typography>
                   <Typography fontSize={10} color='text.secondary'>
-                    + taxes &amp; fees
+                    + taxes & fees
                   </Typography>
                 </Box>
               </Stack>
@@ -252,7 +288,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
                 <Stack spacing={0.5} mb={1.5}>
                   {room.MEAL_PLAN && (
                     <Stack direction='row' spacing={0.5} alignItems='center'>
-                      <IconifyIcon icon='tabler:tools-kitchen-2' width={14} color='#1976d2' />
+                      <IconifyIcon icon='tabler:tools-kitchen-2' width={14} color='#1E4D2B' />
                       <Typography fontSize={11} color='primary.dark' fontWeight={600}>
                         {mealPlanOptions.find(o => String(o.value) === String(room.MEAL_PLAN))?.label || room.MEAL_PLAN}
                       </Typography>
@@ -260,7 +296,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
                   )}
                   {room.CANCELLATION_POLICY && (
                     <Stack direction='row' spacing={0.5} alignItems='center'>
-                      <IconifyIcon icon='tabler:circle-check' width={14} color='#1976d2' />
+                      <IconifyIcon icon='tabler:circle-check' width={14} color='#1E4D2B' />
                       <Typography fontSize={11} color='primary.dark' fontWeight={600}>
                         {cancellationOptions.find(o => String(o.value) === String(room.CANCELLATION_POLICY))?.label ||
                           room.CANCELLATION_POLICY}
@@ -350,7 +386,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
           <TableBody>
             {roomDetails.map((room, index) => {
               const roomFeatures = safeParseJSON(room.ROOM_FEATURES, featureList)
-              const availableRooms = room.ROOMS_QUANTITY ?? 1
+              const availableRooms = room.AVAILABLE_QUANTITY ?? 1
 
               return (
                 <TableRow
@@ -369,7 +405,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
                       <Typography variant='subtitle1' fontWeight={700}>
                         {room.ROOM_TYPE_DESC}
                       </Typography>
-                      {availableRooms <= 3 && (
+                      {availableRooms == 0 ? (
                         <Chip
                           variant='filled'
                           sx={{
@@ -380,25 +416,67 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
                           color='error'
                           label={
                             <Typography sx={{ mx: 0, px: 0 }} variant='body2' fontSize={9} fontWeight='bold'>
-                              ONLY {availableRooms} ROOM(S) LEFT
+                              SOLD OUT
                             </Typography>
                           }
                           size='small'
                           icon={<IconifyIcon icon='tabler:clock-filled' width={10} />}
                         />
+                      ) : (
+                        availableRooms <= 20 && (
+                          <Chip
+                            variant='filled'
+                            sx={{
+                              color: '#DC2626',
+                              backgroundColor: '#FEF2F2',
+                              py: 0
+                            }}
+                            color='error'
+                            label={
+                              <Typography sx={{ mx: 0, px: 0 }} variant='body2' fontSize={9} fontWeight='bold'>
+                                ONLY {availableRooms} ROOM(S) LEFT
+                              </Typography>
+                            }
+                            size='small'
+                            icon={<IconifyIcon icon='tabler:clock-filled' width={10} />}
+                          />
+                        )
                       )}
                     </Box>
                     <Grid container spacing={2} mt={3}>
-                      {roomFeatures.map((feature, index) => (
-                        <Grid item xs={12} md={6} key={index} display='flex' alignItems='top'>
-                          <Typography fontSize={9} color='primary.main'>
-                            <IconifyIcon icon='tabler:circle-check' width={10} />
-                          </Typography>
-                          <Typography fontSize={9} color='primary.main'>
-                            {feature.FEATURES}
-                          </Typography>
+                      {roomFeatures
+                        .slice(0, expandedRooms[room.ROOM_ID] ? roomFeatures.length : 10)
+                        .map((feature, index) => (
+                          <Grid item xs={12} md={6} key={index} display='flex' alignItems='flex-start' gap={0.5}>
+                            <IconifyIcon
+                              icon='tabler:circle-check'
+                              width={10}
+                              color='#1E4D2B'
+                              style={{ marginTop: 2 }}
+                            />
+                            <Typography fontSize={9} color='primary.main'>
+                              {feature.FEATURES}
+                            </Typography>
+                          </Grid>
+                        ))}
+                      {roomFeatures.length > 10 && (
+                        <Grid item xs={12} md={6}>
+                          <Button
+                            size='small'
+                            sx={{
+                              fontSize: '9px',
+                              fontWeight: 600,
+                              color: '#1E4D2B',
+                              textTransform: 'none',
+                              p: 0,
+                              '&:hover': { backgroundColor: 'transparent', textDecoration: 'underline' }
+                            }}
+                            onClick={() => toggleRoomFeatures(room.ROOM_ID)}
+                          >
+                            {expandedRooms[room.ROOM_ID] ? '− Show Less' : `+ Show More (${roomFeatures.length - 10})`}
+                          </Button>
                         </Grid>
-                      ))}
+                      )}
                     </Grid>
                   </TableCell>
                   <TableCell align='center'>
@@ -450,6 +528,7 @@ const RoomsDetailTable = ({ data, rooms = [], searchParams = {}, onRoomSelect, o
                         fontSize: '12px !important',
                         height: 32,
                         width: 50,
+                        bgcolor: availableRooms === 0 ? 'grey.200' : 'transparent',
                         '& .MuiSelect-select': { m: 0, p: 0, pl: 3, textAlign: 'left' }
                       }}
                       disabled={availableRooms === 0}

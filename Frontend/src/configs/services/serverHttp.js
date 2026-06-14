@@ -11,7 +11,7 @@ import https from 'https'
 // const allowSelfSignedLocalCert =
 //   process.env.NODE_ENV !== 'production' && /^https:\/\/(localhost|127\.0\.0\.1)/i.test(serverBaseURL)
 
-// const guestDefaults = { usercode: 0, active: true }
+const guestDefaults = { usercode: 0, active: true }
 
 // const localHttpsAgent = allowSelfSignedLocalCert ? new https.Agent({ rejectUnauthorized: false }) : undefined
 

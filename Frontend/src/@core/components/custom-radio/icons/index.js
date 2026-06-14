@@ -67,4 +67,3 @@ const CustomRadioIcons = props => {
 }
 
 export default CustomRadioIcons
-

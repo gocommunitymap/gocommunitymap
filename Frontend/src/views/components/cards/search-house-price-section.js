@@ -179,13 +179,7 @@ export const SearchHousePriceCard = ({ title, subtitle, filterState, setFilterSt
                                   </Typography>
                                   <Typography variant='subtitle2'>Search area</Typography>
                                   {isLoaded ? (
-                                    <GAutocomplete
-                                      options={{
-                                        componentRestrictions: { country: countryISO }
-                                      }}
-                                      onPlaceChanged={onPlaceChanged}
-                                      onLoad={onLoad}
-                                    >
+                                    <GAutocomplete onPlaceChanged={onPlaceChanged} onLoad={onLoad}>
                                       <TextField
                                         id='icons-start-adornment'
                                         size='medium'

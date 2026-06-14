@@ -1,6 +1,7 @@
 import Head from 'next/head'
+import themeConfig from 'src/configs/themeConfig'
 
-const SITE_NAME = 'GoCommunityMap'
+const SITE_NAME = themeConfig.templateName
 
 /**
  * Reusable SEO head component — drop this into any page for full meta coverage.

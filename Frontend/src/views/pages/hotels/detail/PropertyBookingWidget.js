@@ -5,8 +5,8 @@ import differenceInCalendarDays from 'date-fns/differenceInCalendarDays'
 import ReactDatePicker from 'react-datepicker'
 import { Icon } from '@iconify/react'
 import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
-import { amountWithComma } from 'src/@core/utils'
-import { getGlobalParametersAPI } from 'src/configs'
+import { amountWithComma, GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
+import { getGlobalParametersAPI, getGlobalParametersGuestAPI } from 'src/configs'
 
 const formatTime = val => {
   if (!val && val !== 0) return val
@@ -50,14 +50,18 @@ const PropertyBookingWidget = ({
   roomCount,
   onSearchChange,
   selectedRooms = [],
-  onBeginBooking
+  onBeginBooking,
+  bookingCalendar,
+  priceMap = {},
+  getBookingCalendar,
+  isAvailableBetweenSelectedDates
 }) => {
   const [petsAllowed, setPetsAllowed] = useState(false)
   const [guestAnchorEl, setGuestAnchorEl] = useState(null)
   const [appsetParams, setAppsetParams] = useState([])
 
   useEffect(() => {
-    getGlobalParametersAPI({ TYPE_CODE: 'APPSET' })
+    getGlobalParametersGuestAPI({ TYPE_CODE: GLOBAL_PARAMETER_TYPES.APPLICATION_SETTING })
       .then(res => setAppsetParams(res?.data || []))
       .catch(() => {})
   }, [])
@@ -65,6 +69,9 @@ const PropertyBookingWidget = ({
   const basePrice = Number(property?.PRICE) || 0
   const maxGuests = Number(property?.MAX_GUESTS) || 10
   const petsWelcome = property?.PETS_ALLOWED !== false
+  const listingType = Number(property?.LISTING_TYPE_ID ?? property?.listingType ?? 0)
+  const requiresRoomSelection = listingType === 1
+  const isRoomSelectionMissing = requiresRoomSelection && selectedRooms.length === 0
 
   const nights = startDate && endDate ? Math.max(1, differenceInCalendarDays(endDate, startDate)) : 1
 
@@ -108,6 +115,12 @@ const PropertyBookingWidget = ({
     onBeginBooking && onBeginBooking(null)
   }
 
+  const handleMonthChange = date => {
+    const from = date || null
+    const to = date ? new Date(date.getFullYear(), date.getMonth() + 2, 0) : null
+    getBookingCalendar(from, to)
+  }
+
   return (
     <Box sx={{ position: 'sticky', top: 150 }}>
       <Card sx={{ p: 3, borderRadius: 2 }}>
@@ -147,131 +160,160 @@ const PropertyBookingWidget = ({
           <ReactDatePicker
             selectsRange
             dateFormat='dd-MMM-yyyy'
+            popperProps={{ strategy: 'fixed' }}
             startDate={startDate}
             endDate={endDate}
             onChange={handleDateChange}
             minDate={new Date()}
+            onMonthChange={handleMonthChange}
             customInput={<DateInput placeholder='Select your dates' value={dateRangeLabel} />}
-            monthsShown={1}
+            monthsShown={2}
+            renderDayContents={(day, date) => {
+              const key = format(date, 'yyyy-MM-dd')
+              const price = priceMap[key]
+
+              return (
+                <div
+                  style={{
+                    padding: 5,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    lineHeight: 1.1
+                  }}
+                >
+                  <span>{day}</span>
+
+                  {/* PRICE BELOW DATE */}
+                  {price ? (
+                    <span style={{ fontSize: 10, color: '#10b981' }}>${price}</span>
+                  ) : (
+                    <span style={{ fontSize: 10, opacity: 0.3 }}>-</span>
+                  )}
+                </div>
+              )
+            }}
           />
         </DatePickerWrapper>
 
         {/* Check-in / Check-out times + Meal Plan */}
 
         {/* Guests */}
-        <Box sx={{ mt: 2, mb: 1 }}>
-          <Box
-            sx={{
-              cursor: 'pointer',
-              p: 2,
-              backgroundColor: '#f5f5f5',
-              borderRadius: 1,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              '&:hover': { backgroundColor: '#ede7e7' }
-            }}
-            onClick={e => setGuestAnchorEl(e.currentTarget)}
-          >
-            <Box>
-              <Typography variant='caption' sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-                Guests & Rooms
-              </Typography>
-              <Typography variant='body2' sx={{ color: '#222', fontWeight: 600 }}>
-                {guestSummary}
-              </Typography>
+        {listingType === 1 && (
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Box
+              sx={{
+                cursor: 'pointer',
+                p: 2,
+                backgroundColor: '#f5f5f5',
+                borderRadius: 1,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                '&:hover': { backgroundColor: '#ede7e7' }
+              }}
+              onClick={e => setGuestAnchorEl(e.currentTarget)}
+            >
+              <Box>
+                <Typography variant='caption' sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                  Guests & Rooms
+                </Typography>
+                <Typography variant='body2' sx={{ color: '#222', fontWeight: 600 }}>
+                  {guestSummary}
+                </Typography>
+              </Box>
+              <Icon icon='tabler:chevron-down' style={{ color: '#666' }} />
             </Box>
-            <Icon icon='tabler:chevron-down' style={{ color: '#666' }} />
           </Box>
-        </Box>
+        )}
 
         {/* Guest Popover */}
-        <Popover
-          open={Boolean(guestAnchorEl)}
-          anchorEl={guestAnchorEl}
-          onClose={() => setGuestAnchorEl(null)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-          PaperProps={{ sx: { p: 2.5, borderRadius: 3, minWidth: 280 } }}
-        >
-          {[
-            { label: 'Adults', sub: 'Age 13+', value: adults, field: 'adults', min: 1, max: maxGuests },
-            { label: 'Children', sub: 'Ages 2–12', value: childCount, field: 'childCount', min: 0, max: maxGuests },
-            { label: 'Rooms', sub: null, value: roomCount, field: 'roomCount', min: 1, max: 10 }
-          ].map(item => (
-            <Stack key={item.label} direction='row' alignItems='center' justifyContent='space-between' sx={{ mb: 2 }}>
-              <Box>
-                <Typography variant='body2' fontWeight={600}>
-                  {item.label}
-                </Typography>
-                {item.sub && (
-                  <Typography variant='caption' color='text.secondary'>
-                    {item.sub}
-                  </Typography>
-                )}
-              </Box>
-              <Stack direction='row' alignItems='center' spacing={1}>
-                <IconButton
-                  size='small'
-                  onClick={() => updateCount(item.field, item.value, -1, item.min, item.max)}
-                  sx={{ border: '1px solid #ddd', width: 28, height: 28 }}
-                >
-                  <Icon icon='tabler:minus' fontSize='0.85rem' />
-                </IconButton>
-                <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 600 }}>{item.value}</Typography>
-                <IconButton
-                  size='small'
-                  onClick={() => updateCount(item.field, item.value, 1, item.min, item.max)}
-                  sx={{ border: '1px solid #ddd', width: 28, height: 28 }}
-                >
-                  <Icon icon='tabler:plus' fontSize='0.85rem' />
-                </IconButton>
-              </Stack>
-            </Stack>
-          ))}
-          <Divider sx={{ my: 1.5 }} />
-          {petsWelcome ? (
-            <Stack direction='row' alignItems='center' justifyContent='space-between'>
-              <Box>
-                <Typography variant='body2' fontWeight={600}>
-                  Travelling with pets?
-                </Typography>
-                <Typography variant='caption' color='text.secondary'>
-                  Charges may apply
-                </Typography>
-              </Box>
-              <Switch
-                size='small'
-                checked={petsAllowed}
-                onChange={e => setPetsAllowed(e.target.checked)}
-                sx={{ '& .MuiSwitch-thumb': { backgroundColor: petsAllowed ? '#27ae60' : undefined } }}
-              />
-            </Stack>
-          ) : (
-            <Typography
-              variant='caption'
-              color='text.secondary'
-              sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}
-            >
-              <Icon icon='tabler:paw-off' style={{ fontSize: 14 }} /> Pets not permitted at this property
-            </Typography>
-          )}
-          <Button
-            fullWidth
-            variant='contained'
-            size='small'
-            sx={{ mt: 2, backgroundColor: '#27ae60', '&:hover': { backgroundColor: '#229954' } }}
-            onClick={() => setGuestAnchorEl(null)}
+        {listingType === 1 && (
+          <Popover
+            open={Boolean(guestAnchorEl)}
+            anchorEl={guestAnchorEl}
+            onClose={() => setGuestAnchorEl(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            PaperProps={{ sx: { p: 2.5, borderRadius: 3, minWidth: 280 } }}
           >
-            Done
-          </Button>
-        </Popover>
-
-        <Divider sx={{ my: 3 }} />
+            {[
+              { label: 'Adults', sub: 'Age 13+', value: adults, field: 'adults', min: 1, max: maxGuests },
+              { label: 'Children', sub: 'Ages 2–12', value: childCount, field: 'childCount', min: 0, max: maxGuests },
+              { label: 'Rooms', sub: null, value: roomCount, field: 'roomCount', min: 1, max: 10 }
+            ].map(item => (
+              <Stack key={item.label} direction='row' alignItems='center' justifyContent='space-between' sx={{ mb: 2 }}>
+                <Box>
+                  <Typography variant='body2' fontWeight={600}>
+                    {item.label}
+                  </Typography>
+                  {item.sub && (
+                    <Typography variant='caption' color='text.secondary'>
+                      {item.sub}
+                    </Typography>
+                  )}
+                </Box>
+                <Stack direction='row' alignItems='center' spacing={1}>
+                  <IconButton
+                    size='small'
+                    onClick={() => updateCount(item.field, item.value, -1, item.min, item.max)}
+                    sx={{ border: '1px solid #ddd', width: 28, height: 28 }}
+                  >
+                    <Icon icon='tabler:minus' fontSize='0.85rem' />
+                  </IconButton>
+                  <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 600 }}>{item.value}</Typography>
+                  <IconButton
+                    size='small'
+                    onClick={() => updateCount(item.field, item.value, 1, item.min, item.max)}
+                    sx={{ border: '1px solid #ddd', width: 28, height: 28 }}
+                  >
+                    <Icon icon='tabler:plus' fontSize='0.85rem' />
+                  </IconButton>
+                </Stack>
+              </Stack>
+            ))}
+            <Divider sx={{ my: 1.5 }} />
+            {petsWelcome ? (
+              <Stack direction='row' alignItems='center' justifyContent='space-between'>
+                <Box>
+                  <Typography variant='body2' fontWeight={600}>
+                    Travelling with pets?
+                  </Typography>
+                  <Typography variant='caption' color='text.secondary'>
+                    Charges may apply
+                  </Typography>
+                </Box>
+                <Switch
+                  size='small'
+                  checked={petsAllowed}
+                  onChange={e => setPetsAllowed(e.target.checked)}
+                  sx={{ '& .MuiSwitch-thumb': { backgroundColor: petsAllowed ? '#27ae60' : undefined } }}
+                />
+              </Stack>
+            ) : (
+              <Typography
+                variant='caption'
+                color='text.secondary'
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}
+              >
+                <Icon icon='tabler:paw-off' style={{ fontSize: 14 }} /> Pets not permitted at this property
+              </Typography>
+            )}
+            <Button
+              fullWidth
+              variant='contained'
+              size='small'
+              sx={{ mt: 2, backgroundColor: '#27ae60', '&:hover': { backgroundColor: '#229954' } }}
+              onClick={() => setGuestAnchorEl(null)}
+            >
+              Done
+            </Button>
+          </Popover>
+        )}
 
         {/* Price Breakdown */}
         {nights > 0 && (
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ my: 3 }}>
             {roomLines ? (
               roomLines.map(line => (
                 <Box key={line.name} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -299,6 +341,15 @@ const PropertyBookingWidget = ({
                 <Typography variant='caption'>${amountWithComma(fee.amount)}</Typography>
               </Box>
             ))}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography fontWeight='bold' variant='caption'>
+                Total Taxes & Fees:
+              </Typography>
+              <Typography fontWeight='bold' variant='caption'>
+                ${amountWithComma(subtotal)}
+              </Typography>
+            </Box>
+            <Typography variant='caption' sx={{ display: 'block', textAlign: 'right', fontWeight: 600 }}></Typography>
           </Box>
         )}
 
@@ -339,7 +390,11 @@ const PropertyBookingWidget = ({
             </Typography>
           </Box>
         )}
-
+        {isRoomSelectionMissing && (
+          <Typography variant='caption' color='error' sx={{ mb: 2, display: 'block' }}>
+            Please select at least one room to proceed with booking.
+          </Typography>
+        )}
         {/* Booking Button */}
         <Button
           variant='contained'
@@ -354,7 +409,12 @@ const PropertyBookingWidget = ({
             '&:hover': { backgroundColor: '#229954' }
           }}
           onClick={handleBeginBooking}
-          disabled={!startDate || !endDate}
+          disabled={
+            !startDate ||
+            !endDate ||
+            (property.LISTING_TYPE_ID == 1 && isRoomSelectionMissing) ||
+            (property.LISTING_TYPE_ID == 2 && !isAvailableBetweenSelectedDates)
+          }
         >
           Complete Booking
         </Button>

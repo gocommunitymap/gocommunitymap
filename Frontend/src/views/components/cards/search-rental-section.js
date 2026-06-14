@@ -23,7 +23,13 @@ import { styled, useTheme } from '@mui/material/styles'
 import { useRouter } from 'next/router'
 import { Autocomplete as GAutocomplete, useLoadScript } from '@react-google-maps/api'
 import { useEffect, useState } from 'react'
-import { countryISO, getGlobalParametersLOV, jsonToQueryString } from 'src/@core/utils'
+import {
+  countryISO,
+  getGlobalParametersGroupsLOV,
+  getOptionsByTypeCode,
+  jsonToQueryString,
+  GLOBAL_PARAMETER_TYPES
+} from 'src/@core/utils'
 
 const placesLibrary = ['places']
 
@@ -73,31 +79,30 @@ export const SearchRentalSectionCard = ({ title, subtitle, filterState, setFilte
   const [searchResult, setSearchResult] = useState('Result: none')
   const [searchState, setSearchState] = useState()
 
-  const setPropertyType = async () => {
-    const data = await getGlobalParametersLOV('PROPTYPE')
+  const loadSearchOptions = async () => {
+    const globalParametersLOVData = await getGlobalParametersGroupsLOV(
+      `${GLOBAL_PARAMETER_TYPES.PROPERTY_TYPE},${GLOBAL_PARAMETER_TYPES.BEDROOMS}`
+    )
+
+    const propertyTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.PROPERTY_TYPE)
+    const bedrooms = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.BEDROOMS)
 
     //Bind Property Type List
-    if (data?.length > 0) {
-      const _data = data.filter((v, i) => i < 5)
-      _data.push({ value: 0, label: 'Show all' })
-      setPropertyTypeOptions(_data.sort((a, b) => a.value - b.value).filter((v, i) => i < 5))
+    if (propertyTypes?.length > 0) {
+      const propertyTypeData = propertyTypes.filter((v, i) => i < 5)
+      propertyTypeData.push({ value: 0, label: 'Show all' })
+      setPropertyTypeOptions(propertyTypeData.sort((a, b) => a.value - b.value).filter((v, i) => i < 5))
     }
-  }
-
-  const setBedrooms = async () => {
-    const data = await getGlobalParametersLOV('BEDROOMS')
 
     //Bind Bedrooms List
-    if (data?.length > 0) {
-      const _data = data
-      _data.push({ value: '0', label: 'No Limit' })
-      setBedroomsOptions(_data.sort((a, b) => a.value - b.value))
+    if (bedrooms?.length > 0) {
+      const bedroomsData = [...bedrooms, { value: '0', label: 'No Limit' }]
+      setBedroomsOptions(bedroomsData.sort((a, b) => a.value - b.value))
     }
   }
 
   useEffect(() => {
-    setBedrooms()
-    setPropertyType()
+    loadSearchOptions()
     setValue('minBeds', { value: '0', label: 'No Limit' })
     setValue('maxPrice', { value: '0', label: 'No Limit' })
     setValue('propertyType', propertyTypeOptions[0])
@@ -138,7 +143,7 @@ export const SearchRentalSectionCard = ({ title, subtitle, filterState, setFilte
     params = { ...params, propertyType }
     const _params = jsonToQueryString(params)
 
-    replace(`/rental/properties${_params}`)
+    replace(`/rentals/properties${_params}`)
   }
 
   return (
@@ -175,13 +180,7 @@ export const SearchRentalSectionCard = ({ title, subtitle, filterState, setFilte
                     <Grid item xs={12} textAlign='left'>
                       <Typography variant='subtitle2'>Search area</Typography>
                       {isLoaded ? (
-                        <GAutocomplete
-                          options={{
-                            componentRestrictions: { country: countryISO }
-                          }}
-                          onPlaceChanged={onPlaceChanged}
-                          onLoad={onLoad}
-                        >
+                        <GAutocomplete onPlaceChanged={onPlaceChanged} onLoad={onLoad}>
                           <TextField id='icons-start-adornment' size='medium' placeholder='Find Location' fullWidth />
                         </GAutocomplete>
                       ) : (

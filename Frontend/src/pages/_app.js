@@ -71,10 +71,65 @@ if (themeConfig.routingLoader) {
 const Guard = ({ children, authGuard, guestGuard }) => {
   const { user } = useAuth()
   useEffect(() => {
-    // console.log('token', user ? new Date(jwtDecode(user?.token).exp * 1000) : null)
+    const INACTIVE_LIMIT = 1 * 30 * 1000 // 30 minutes
 
-    if (user && isTokenExpired(user?.token)) {
-      console.log('Auth call')
+    const updateActivity = () => {
+      const exp = user ? jwtDecode(user?.token)?.exp : null
+      if (exp) {
+        const expTime = new Date(exp * 1000)
+        localStorage.setItem('lastActivityTime', expTime.toString())
+      }
+    }
+
+    const checkUserReturn = () => {
+      const lastActivity = localStorage.getItem('lastActivityTime')
+
+      if (!lastActivity) {
+        updateActivity()
+
+        return
+      }
+
+      const inactiveTime = Date.now() - Number(lastActivity)
+
+      console.log(`Last Activity ${lastActivity} minutes`, inactiveTime, inactiveTime > INACTIVE_LIMIT)
+      if (inactiveTime > INACTIVE_LIMIT) {
+        console.log(`User returned after ${Math.floor(inactiveTime / 1000 / 30)} minutes`)
+        alert(`You have been inactive for ${Math.floor(inactiveTime / 1000 / 30)} minutes, please login again`)
+
+        // Your logic here
+        // Example:
+        // window.location.reload();
+        // logoutUser();
+        // fetchLatestData();
+        // showSessionExpiredPopup();
+      }
+
+      updateActivity()
+    }
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click']
+
+    events.forEach(event => {
+      window.addEventListener(event, updateActivity)
+    })
+
+    window.addEventListener('focus', checkUserReturn)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkUserReturn()
+      }
+    })
+
+    // Initial load
+    checkUserReturn()
+
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, updateActivity)
+      })
+
+      window.removeEventListener('focus', checkUserReturn)
     }
   }, [user])
 
@@ -111,7 +166,7 @@ const App = props => {
         <Head>
           <title>{`${themeConfig.templateName} `}</title>
           <meta name='description' content={`${themeConfig.templateName}`} />
-          <meta name='keywords' content='PMS' />
+          <meta name='keywords' content={themeConfig.templateName} />
           <meta name='viewport' content='initial-scale=1, width=device-width' />
         </Head>
 

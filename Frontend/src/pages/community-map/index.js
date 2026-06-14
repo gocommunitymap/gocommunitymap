@@ -1,12 +1,13 @@
 import SeoHead from 'src/components/SeoHead'
 import CommunityMapLayout from 'src/@core/layouts/CommunityMapLayout'
 import { LandingCommunityMap } from 'src/views/pages/home/landing'
+import themeConfig from 'src/configs/themeConfig'
 
 const CommunityMapPage = () => {
   return (
     <>
       <SeoHead
-        title='Go Community Map - Find Your Community'
+        title={`${themeConfig.templateName} - Find Your Community`}
         description='Discover your community around the world. Connect with Japanese, Spanish, Polish, English, Brazilian, Korean and other communities worldwide.'
         canonical='https://gocommunitymap.com/community-map'
       />
@@ -16,6 +17,7 @@ const CommunityMapPage = () => {
 }
 
 CommunityMapPage.guestGuard = true
-CommunityMapPage.getLayout = page => <CommunityMapLayout>{page}</CommunityMapLayout>
+
+// CommunityMapPage.getLayout = page => <CommunityMapLayout>{page}</CommunityMapLayout>
 
 export default CommunityMapPage

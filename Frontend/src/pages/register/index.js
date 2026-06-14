@@ -20,7 +20,6 @@ import { styled, useTheme } from '@mui/material/styles'
 import InputAdornment from '@mui/material/InputAdornment'
 import Typography from '@mui/material/Typography'
 import MuiFormControlLabel from '@mui/material/FormControlLabel'
-import 'cleave.js/dist/addons/cleave-phone.us'
 
 // ** Icon Imports
 import Icon from 'src/@core/components/icon'
@@ -38,19 +37,12 @@ import { useSettings } from 'src/@core/hooks/useSettings'
 import FooterIllustrationsV2 from 'src/views/pages/auth/FooterIllustrationsV2'
 import CompanyLogo from 'src/@core/components/company-logo'
 import { useForm, Controller } from 'react-hook-form'
-import { Badge, Card, FormHelperText, FormLabel, Grid, Radio, RadioGroup, Slide } from '@mui/material'
-import Cleave from 'cleave.js/react'
+import { Card, FormHelperText, FormLabel, Grid } from '@mui/material'
 import { green, grey, red } from '@mui/material/colors'
-import { updateUser } from 'src/store'
-import { registerUserAPI, updateUserAPI } from 'src/configs'
+import { registerUserAPI } from 'src/configs'
 import toast from 'react-hot-toast'
 import { LoadingButton } from '@mui/lab'
 import IconifyIcon from 'src/@core/components/icon'
-
-const userTypeOptions = [
-  { value: 2, label: 'Landlord', icon: 'mdi:home' },
-  { value: 3, label: 'Agent', icon: 'mdi:face-agent' }
-]
 
 // ** Styled Components
 const RegisterIllustrationWrapper = styled(Box)(({ theme }) => ({
@@ -104,31 +96,38 @@ const FormControlLabel = styled(MuiFormControlLabel)(({ theme }) => ({
   }
 }))
 
-function MaskedTextField(props) {
-  const { inputRef, ...other } = props
-
-  //+44 00 0000 0000
-  return <Cleave {...other} ref={inputRef} options={{ numericOnly: true, delimiters: [' ', ' '], blocks: [2, 4, 4] }} />
-}
-
-const PasswordValidationLabel = ({ label, isError }) => {
-  return (
+const PasswordValidationRow = ({ label, passed }) => (
+  <Box display='flex' alignItems='center' gap={1} mt={0.75}>
     <Box
-      bgcolor={isError ? 'error.light' : 'secondary.main'}
-      color={isError ? 'white' : 'secondary.light'}
-      borderRadius={1}
-      display='flex'
-      justifyContent='center'
-      alignItems='center'
-      mt={2}
-      p={1}
+      sx={{
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: passed ? 'primary.main' : 'action.disabledBackground',
+        flexShrink: 0,
+        transition: 'background-color 0.2s'
+      }}
     >
-      <Typography mr={2} variant='caption' color={isError ? 'white' : 'secondary.light'}>
-        {label}
-      </Typography>
-      <Icon fontSize={12} icon={isError ? 'tabler:x' : 'tabler:check'} />
+      <Icon fontSize={11} icon={passed ? 'tabler:check' : 'tabler:minus'} color={passed ? 'white' : ''} />
     </Box>
-  )
+    <Typography variant='caption' color={passed ? 'primary.main' : 'text.secondary'} sx={{ transition: 'color 0.2s' }}>
+      {label}
+    </Typography>
+  </Box>
+)
+
+const getPasswordStrength = validations => {
+  const { passwordsMatch: _, ...strengthValidations } = validations
+  const passed = Object.values(strengthValidations).filter(v => !v).length
+  if (passed === 5) return { score: 100, label: 'Strong', color: 'primary.main' }
+  if (passed === 4) return { score: 80, label: 'Good', color: 'info.main' }
+  if (passed === 3) return { score: 60, label: 'Fair', color: 'warning.main' }
+  if (passed >= 1) return { score: 30, label: 'Weak', color: 'error.main' }
+
+  return { score: 0, label: '', color: 'divider' }
 }
 
 const LinkStyled = styled(Link)(({ theme }) => ({
@@ -137,13 +136,13 @@ const LinkStyled = styled(Link)(({ theme }) => ({
 }))
 
 const defaultValues = {
-  USER_TYPE: null,
   USER_CODE: null,
   ROLE_CODE: 2,
   USER_NAME: '',
   EMAIL: '',
   PASSWORD: '',
-  CONTACT_NO: '',
+  CONFIRM_PASSWORD: '',
+  CONTACT_NO: '+',
   STATUS: true,
   CREATED_BY: 0
 }
@@ -154,13 +153,15 @@ const Register = () => {
     isSubmit: false
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [passwordValidations, setPasswordValidations] = useState({
     lowercase: true,
     uppercase: true,
     number: true,
     spacialCharacter: true,
-    length: true
+    length: true,
+    passwordsMatch: true
   })
 
   // ** Hooks
@@ -187,15 +188,18 @@ const Register = () => {
   const onSubmit = data => {
     setStates({ ...states, isSubmit: true })
     registerUserAPI({
-      USER_CODE: data.USER_CODE,
-      ROLE_CODE: null,
-      USER_NAME: data.USER_NAME,
-      EMAIL: data.EMAIL,
-      PASSWORD: data.PASSWORD,
-      CONTACT_NO: data.CONTACT_NO,
-      STATUS: 1,
-      USER_TYPE: data.USER_TYPE,
-      USER: 0
+      data: {
+        USER_CODE: data.USER_CODE,
+        ROLE_CODE: null,
+        USER_NAME: data.USER_NAME,
+        EMAIL: data.EMAIL,
+        PASSWORD: data.PASSWORD,
+        CONTACT_NO: data.CONTACT_NO,
+        STATUS: 1,
+        USER_TYPE: 4,
+        USER: 0
+      },
+      config: { toast: false, isGuest: true, returnErrorResponse: false }
     }).then(response => {
       if (response !== false) {
         toast.success(
@@ -213,12 +217,14 @@ const Register = () => {
         )
         reset()
         setShowPassword(false)
+        setShowConfirmPassword(false)
         setPasswordValidations({
           lowercase: true,
           uppercase: true,
           number: true,
           spacialCharacter: true,
-          length: true
+          length: true,
+          passwordsMatch: true
         })
       }
 
@@ -233,12 +239,15 @@ const Register = () => {
     const numbers = /[0-9]/g
     var spacialCharacters = /[ `!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/
 
+    const confirmValue = watch('CONFIRM_PASSWORD')
+
     const _passwordValidations = {
       lowercase: !Boolean(value.match(lowerCaseLetters)),
       uppercase: !Boolean(value.match(upperCaseLetters)),
       number: !Boolean(value.match(numbers)),
       spacialCharacter: !Boolean(value.match(spacialCharacters)),
-      length: value.length < 8
+      length: value.length < 8,
+      passwordsMatch: !confirmValue || value !== confirmValue
     }
     if (
       !Boolean(value.match(lowerCaseLetters)) ||
@@ -271,322 +280,313 @@ const Register = () => {
         <RightWrapper sx={skin === 'bordered' && !hidden ? { borderLeft: `1px solid ${theme.palette.divider}` } : {}}>
           <Box
             sx={{
-              p: 5,
-              height: '100%',
+              px: 7,
+              pt: { xs: 0, md: 10 },
+              height: { xs: 'auto', sm: '100%' },
               display: 'flex',
-              alignItems: 'top',
               justifyContent: 'center',
+              alignItems: 'center',
               backgroundColor: 'background.paper'
             }}
           >
             <BoxWrapper>
-              <Box
-                sx={{
-                  top: 30,
-                  left: { xs: 0, md: 40 },
-                  display: 'flex',
-                  position: 'absolute',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <CompanyLogo width='60' />
-                {/* <Typography variant='h6' sx={{ ml: 2, lineHeight: 1, fontWeight: 700, fontSize: '1.5rem !important' }}>
-                {themeConfig.templateName}
-              </Typography> */}
-              </Box>
+              {hidden && (
+                <Box
+                  sx={{
+                    mt: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <CompanyLogo width='40' />
+                  <Typography
+                    variant='h6'
+                    sx={{ ml: 2, lineHeight: 1, fontWeight: 700, fontSize: '1.5rem !important' }}
+                  >
+                    {themeConfig.templateName}
+                  </Typography>
+                </Box>
+              )}
               <Box sx={{ mb: 6 }}>
-                <TypographyStyled variant='h5' pt={5}>
-                  Registration
+                <TypographyStyled variant='h5' sx={{ m: 0, p: 0, lineHeight: 1 }}>
+                  <p style={{ padding: 0, margin: 0, lineHeight: 1 }}>Registration</p>
+                  <p style={{ padding: 0, margin: '5px 0 0 0', lineHeight: 1, fontWeight: 'normal', fontSize: 14 }}>
+                    Register to save properties and much more
+                  </p>
                 </TypographyStyled>
-                <TypographyStyled variant='body2'>Register to save properties and much more</TypographyStyled>
               </Box>
               <form noValidate autoComplete='off' onSubmit={handleSubmit(onSubmit)}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <FormControl fullWidth error={errors.USER_TYPE} sx={{ width: '100%', textAlign: 'center' }}>
-                      <RadioGroup row>
-                        <Grid container>
-                          {userTypeOptions.map(item => (
-                            <Grid
-                              key={item.value}
-                              item
-                              xs={Boolean(watch('USER_TYPE')) ? 2 : 12}
-                              display='flex'
-                              justifyContent='center'
-                            >
-                              <Controller
-                                name='USER_TYPE'
-                                control={control}
-                                rules={{
-                                  required: true
+                <div>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <Controller
+                          name='USER_NAME'
+                          control={control}
+                          rules={{
+                            required: true,
+                            minLength: 5,
+                            maxLength: 30,
+                            pattern: {
+                              value: /^[a-zA-Z ]*$/
+                            }
+                          }}
+                          render={({ field: { value, onChange } }) => (
+                            <TextField
+                              value={value}
+                              size='small'
+                              inputProps={{ maxLength: 30 }}
+                              label='NAME'
+                              onChange={onChange}
+                              placeholder='Minimum 5 & Maximum 30'
+                              error={Boolean(errors.USER_NAME)}
+                              helperText={Boolean(errors.USER_NAME) && 'Enter Name (Minimum 5 & Maximum 30) A to Z'}
+                            />
+                          )}
+                        />
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <Controller
+                          name='EMAIL'
+                          control={control}
+                          rules={{
+                            required: true,
+                            pattern: {
+                              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                              message: 'Invalid Email Address'
+                            }
+                          }}
+                          render={({ field: { value, onChange } }) => (
+                            <TextField
+                              size='small'
+                              type='email'
+                              value={value}
+                              inputProps={{ maxLength: 50 }}
+                              label='EMAIL ADDRESS'
+                              onChange={onChange}
+                              placeholder='EMAIL ADDRESS'
+                              error={Boolean(errors.EMAIL)}
+                              helperText={Boolean(errors.EMAIL) && 'Enter Valid Email Address'}
+                            />
+                          )}
+                        />
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <Controller
+                          name='CONTACT_NO'
+                          control={control}
+                          rules={{
+                            required: true,
+                            minLength: 7,
+                            maxLength: 16,
+                            pattern: { value: /^\+\d+$/, message: 'Must start with + followed by numbers' }
+                          }}
+                          render={({ field: { value, onChange } }) => (
+                            <TextField
+                              size='small'
+                              value={value}
+                              label='CONTACT NO'
+                              onChange={e => {
+                                const raw = e.target.value
+
+                                // Always keep leading '+', strip any non-digit after it, max 15 digits after '+'
+                                const digits = raw.replace(/^\+/, '').replace(/\D/g, '').slice(0, 15)
+                                onChange('+' + digits)
+                              }}
+                              placeholder='+12025550123'
+                              inputProps={{ maxLength: 16, inputMode: 'tel' }}
+                              error={Boolean(errors.CONTACT_NO)}
+                              helperText={'Enter a valid contact number'}
+                            />
+                          )}
+                        />
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <InputLabel htmlFor='auth-login-v2-password'>PASSWORD</InputLabel>
+                        <Controller
+                          name='PASSWORD'
+                          control={control}
+                          rules={{ required: true }}
+                          render={({ field: { value, onChange } }) => (
+                            <>
+                              <OutlinedInput
+                                label='PASSWORD'
+                                value={value}
+                                onChange={e => {
+                                  onChange(e)
+                                  handlePasswordValidation(e)
                                 }}
-                                render={({ field: { value, onChange } }) => (
-                                  <label style={{ cursor: 'pointer' }}>
-                                    <Badge
-                                      badgeContent={
-                                        item.value == value ? <IconifyIcon fontSize={9} icon='mdi:check' /> : null
-                                      }
-                                      color='info'
+                                id='auth-login-v2-password'
+                                type={showPassword ? 'text' : 'password'}
+                                endAdornment={
+                                  <InputAdornment position='end'>
+                                    <IconButton
+                                      edge='end'
+                                      onMouseDown={e => e.preventDefault()}
+                                      onClick={() => setShowPassword(!showPassword)}
                                     >
-                                      <Card
-                                        sx={{
-                                          display: 'flex',
-                                          justifyContent: 'center',
-                                          alignItems: 'center',
-                                          '&:hover': { backgroundColor: 'primary.light' },
-                                          backgroundColor: item.value == value ? 'primary.main' : 'inherit',
-                                          color: item.value == value ? 'common.white' : 'inherit',
-                                          width: Boolean(watch('USER_TYPE')) ? 50 : 250,
-                                          height: Boolean(watch('USER_TYPE')) ? 50 : 250,
-                                          mx: 1,
-                                          mb: 3
-                                        }}
-                                      >
-                                        <Box sx={{ textAlign: 'center' }}>
-                                          <IconifyIcon
-                                            fontSize={Boolean(watch('USER_TYPE')) ? 16 : 70}
-                                            icon={item.icon}
-                                          />
-                                          <Typography
-                                            variant={Boolean(watch('USER_TYPE')) ? 'body2' : 'h6'}
-                                            sx={{
-                                              fontSize: Boolean(watch('USER_TYPE')) ? 9 : 18,
-                                              color: item.value == value ? 'common.white' : 'inherit'
-                                            }}
-                                          >
-                                            {item.label}
-                                          </Typography>
-                                        </Box>
-                                        <FormControlLabel
-                                          sx={{ p: 0, m: 0 }}
-                                          onChange={onChange}
-                                          value={item.value}
-                                          control={
-                                            <Radio
-                                              sx={{ display: 'none' }}
-                                              id={`user-type-${item.value}`}
-                                              checked={item.value == value}
-                                            />
-                                          }
-                                        />
-                                      </Card>
-                                    </Badge>
-                                  </label>
-                                )}
+                                      <Icon icon={showPassword ? 'mdi:eye-outline' : 'mdi:eye-off-outline'} />
+                                    </IconButton>
+                                  </InputAdornment>
+                                }
+                                error={Boolean(errors.PASSWORD)}
+                                helperText={Boolean(errors.PASSWORD) && 'Required'}
                               />
-                            </Grid>
-                          ))}
-                        </Grid>
-                      </RadioGroup>
-                      <FormLabel sx={{ fontSize: 12 }}>{errors.USER_TYPE && 'Please Select'}</FormLabel>
-                    </FormControl>
-                  </Grid>
-                </Grid>
-                {Boolean(watch('USER_TYPE')) && (
-                  <Slide direction='up' in={Boolean(watch('USER_TYPE'))} mountOnEnter unmountOnExit>
-                    <div>
-                      <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                          <FormControl fullWidth>
-                            <Controller
-                              name='USER_NAME'
-                              control={control}
-                              rules={{
-                                required: true,
-                                minLength: 5,
-                                maxLength: 30,
-                                pattern: {
-                                  value: /^[a-zA-Z ]*$/
-                                }
+                            </>
+                          )}
+                        />
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <InputLabel htmlFor='auth-register-confirm-password'>CONFIRM PASSWORD</InputLabel>
+                        <Controller
+                          name='CONFIRM_PASSWORD'
+                          control={control}
+                          rules={{
+                            required: true,
+                            validate: value => value === watch('PASSWORD') || 'Passwords do not match'
+                          }}
+                          render={({ field: { value, onChange } }) => (
+                            <OutlinedInput
+                              label='CONFIRM PASSWORD'
+                              value={value}
+                              onChange={e => {
+                                onChange(e)
+                                setPasswordValidations(prev => ({
+                                  ...prev,
+                                  passwordsMatch: !e.target.value || e.target.value !== watch('PASSWORD')
+                                }))
                               }}
-                              render={({ field: { value, onChange } }) => (
-                                <TextField
-                                  value={value}
-                                  size='small'
-                                  inputProps={{ maxLength: 30 }}
-                                  label='NAME'
-                                  onChange={onChange}
-                                  placeholder='Minimum 5 & Maximum 30'
-                                  error={Boolean(errors.USER_NAME)}
-                                  helperText={Boolean(errors.USER_NAME) && 'Enter Name (Minimum 5 & Maximum 30) A to Z'}
-                                />
-                              )}
-                            />
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                          <FormControl fullWidth>
-                            <Controller
-                              name='EMAIL'
-                              control={control}
-                              rules={{
-                                required: true,
-                                pattern: {
-                                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                  message: 'Invalid Email Address'
-                                }
-                              }}
-                              render={({ field: { value, onChange } }) => (
-                                <TextField
-                                  size='small'
-                                  type='email'
-                                  value={value}
-                                  inputProps={{ maxLength: 50 }}
-                                  label='EMAIL ADDRESS'
-                                  onChange={onChange}
-                                  placeholder='EMAIL ADDRESS'
-                                  error={Boolean(errors.EMAIL)}
-                                  helperText={Boolean(errors.EMAIL) && 'Enter Valid Email Address'}
-                                />
-                              )}
-                            />
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                          <FormControl fullWidth>
-                            <Controller
-                              name='CONTACT_NO'
-                              control={control}
-                              rules={{ required: true, minLength: 10, maxLength: 15 }}
-                              render={({ field: { value, onChange } }) => (
-                                <>
-                                  {/* <Cleave placeholder='+44 00 0000 0000' options={{ phone: true, phoneRegionCode: 'US' }} /> */}
-                                  <InputLabel htmlFor='contact_no'>CONTACT NO</InputLabel>
-
-                                  <OutlinedInput
-                                    size='small'
-                                    value={value}
-                                    inputProps={{ maxLength: 15 }}
-                                    label='CONTACT No'
-                                    onChange={onChange}
-                                    placeholder='00 0000 0000'
-                                    error={Boolean(errors.CONTACT_NO)}
-                                    startAdornment={
-                                      <InputAdornment position='start'>
-                                        <Typography>+44</Typography>
-                                      </InputAdornment>
-                                    }
-                                    inputComponent={MaskedTextField}
-                                  />
-                                  {errors.CONTACT_NO && (
-                                    <FormHelperText sx={{ color: 'error.main' }} id=''>
-                                      Enter Valid Contact No
-                                    </FormHelperText>
-                                  )}
-                                </>
-                              )}
-                            />
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                          <FormControl fullWidth>
-                            <InputLabel htmlFor='auth-login-v2-password'>PASSWORD</InputLabel>
-                            <Controller
-                              name='PASSWORD'
-                              control={control}
-                              rules={{ required: true }}
-                              render={({ field: { value, onChange } }) => (
-                                <>
-                                  <OutlinedInput
-                                    label='PASSWORD'
-                                    value={value}
-                                    onChange={e => {
-                                      onChange(e)
-                                      handlePasswordValidation(e)
-                                    }}
-                                    id='auth-login-v2-password'
-                                    type={showPassword ? 'text' : 'password'}
-                                    endAdornment={
-                                      <InputAdornment position='end'>
-                                        <IconButton
-                                          edge='end'
-                                          onMouseDown={e => e.preventDefault()}
-                                          onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                          <Icon icon={showPassword ? 'mdi:eye-outline' : 'mdi:eye-off-outline'} />
-                                        </IconButton>
-                                      </InputAdornment>
-                                    }
-                                    error={Boolean(errors.PASSWORD)}
-                                    helperText={Boolean(errors.PASSWORD) && 'Required'}
-                                  />
-
-                                  <Box
-                                    p={3}
-                                    borderRadius={1}
-                                    mt={2}
-                                    border='solid'
-                                    borderColor={
-                                      passwordValidations.length ||
-                                      passwordValidations.lowercase ||
-                                      passwordValidations.uppercase ||
-                                      passwordValidations.spacialCharacter ||
-                                      passwordValidations.number
-                                        ? 'error.main'
-                                        : 'secondary.main'
-                                    }
-                                    bgcolor={
-                                      !passwordValidations.length &&
-                                      !passwordValidations.lowercase &&
-                                      !passwordValidations.uppercase &&
-                                      !passwordValidations.spacialCharacter &&
-                                      !passwordValidations.number &&
-                                      'secondary.light'
-                                    }
+                              id='auth-register-confirm-password'
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              endAdornment={
+                                <InputAdornment position='end'>
+                                  <IconButton
+                                    edge='end'
+                                    onMouseDown={e => e.preventDefault()}
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                   >
-                                    <Typography variant='subtitle1'>Password must contain the following:</Typography>
-                                    <PasswordValidationLabel
-                                      label='A lowercase letter'
-                                      isError={passwordValidations.lowercase}
-                                    />
-                                    <PasswordValidationLabel
-                                      label='A capital (uppercase)'
-                                      isError={passwordValidations.uppercase}
-                                    />
-                                    <PasswordValidationLabel label='A number' isError={passwordValidations.number} />
-                                    <PasswordValidationLabel
-                                      label='A Spacial character'
-                                      isError={passwordValidations.spacialCharacter}
-                                    />
-                                    <PasswordValidationLabel
-                                      label='Minimum 8 characters'
-                                      isError={passwordValidations.length}
-                                    />
-                                  </Box>
-                                </>
-                              )}
+                                    <Icon icon={showConfirmPassword ? 'mdi:eye-outline' : 'mdi:eye-off-outline'} />
+                                  </IconButton>
+                                </InputAdornment>
+                              }
+                              error={Boolean(errors.CONFIRM_PASSWORD)}
                             />
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                          <LoadingButton
-                            loading={states.isSubmit}
-                            fullWidth
-                            size='large'
-                            type='submit'
-                            variant='contained'
-                            sx={{ my: 3 }}
-                          >
-                            Sign up
-                          </LoadingButton>
+                          )}
+                        />
+                        {errors.CONFIRM_PASSWORD && (
+                          <FormHelperText sx={{ color: 'error.main' }}>
+                            {errors.CONFIRM_PASSWORD.message || 'Confirm password is required'}
+                          </FormHelperText>
+                        )}
+                      </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      {(() => {
+                        const strength = getPasswordStrength(passwordValidations)
+                        const hasInput = Object.values(passwordValidations).some(v => !v)
+
+                        return hasInput ? (
                           <Box
-                            sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}
+                            sx={{
+                              p: 2.5,
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              bgcolor: 'background.paper'
+                            }}
                           >
-                            <Typography sx={{ mr: 2, color: 'text.secondary' }}>Already have an account?</Typography>
-                            <Typography
-                              href='/login'
-                              component={Link}
-                              sx={{ color: 'primary.main', textDecoration: 'none' }}
+                            <Box display='flex' justifyContent='space-between' alignItems='center' mb={1}>
+                              <Typography variant='caption' color='text.secondary' fontWeight={500}>
+                                Password strength
+                              </Typography>
+                              <Typography variant='caption' fontWeight={600} color={strength.color}>
+                                {strength.label}
+                              </Typography>
+                            </Box>
+                            <Box
+                              sx={{
+                                height: 6,
+                                borderRadius: 3,
+                                bgcolor: 'action.disabledBackground',
+                                overflow: 'hidden',
+                                mb: 2
+                              }}
                             >
-                              Sign in instead
-                            </Typography>
+                              <Box
+                                sx={{
+                                  height: '100%',
+                                  width: `${strength.score}%`,
+                                  borderRadius: 3,
+                                  bgcolor: strength.color,
+                                  transition: 'width 0.3s ease, background-color 0.3s ease'
+                                }}
+                              />
+                            </Box>
+                            <Grid container spacing={0}>
+                              <Grid item xs={6}>
+                                <PasswordValidationRow
+                                  label='Lowercase letter'
+                                  passed={!passwordValidations.lowercase}
+                                />
+                                <PasswordValidationRow
+                                  label='Uppercase letter'
+                                  passed={!passwordValidations.uppercase}
+                                />
+                                <PasswordValidationRow label='Number' passed={!passwordValidations.number} />
+                              </Grid>
+                              <Grid item xs={6}>
+                                <PasswordValidationRow
+                                  label='Special character'
+                                  passed={!passwordValidations.spacialCharacter}
+                                />
+                                <PasswordValidationRow
+                                  label='Minimum 8 characters'
+                                  passed={!passwordValidations.length}
+                                />
+                                <PasswordValidationRow
+                                  label='Passwords match'
+                                  passed={!passwordValidations.passwordsMatch}
+                                />
+                              </Grid>
+                            </Grid>
                           </Box>
-                        </Grid>
-                      </Grid>
-                    </div>
-                  </Slide>
-                )}
+                        ) : null
+                      })()}
+                    </Grid>
+                    <Grid item xs={12}>
+                      <LoadingButton
+                        loading={states.isSubmit}
+                        fullWidth
+                        size='large'
+                        type='submit'
+                        variant='contained'
+                        sx={{ my: 3 }}
+                      >
+                        Sign up
+                      </LoadingButton>
+                      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <Typography sx={{ mr: 2, color: 'text.secondary' }}>Already have an account?</Typography>
+                        <Typography
+                          href='/login'
+                          component={Link}
+                          sx={{ color: 'primary.main', textDecoration: 'none' }}
+                        >
+                          Sign in instead
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </div>
               </form>
             </BoxWrapper>
           </Box>

@@ -56,6 +56,12 @@ const ViewComponent = ({ row }) => {
   )
 }
 
+const headerStyle = {
+  whiteSpace: 'normal',
+  lineHeight: '1.2',
+  wordBreak: 'break-word'
+}
+
 export const columns = [
   // {
   //   sortable: false,
@@ -68,13 +74,55 @@ export const columns = [
   //   field: 'PICTURE_LINK',
   //   renderCell: ({ row }) => <ViewComponent row={row} />
   // },
-  { flex: 1, minWidth: 70, headerName: 'PROPERTY ID', field: 'PROPERTY_ID' },
-  { flex: 1, headerName: 'SITE STATUS', field: 'SITE_STATUS_DESC' },
-  { flex: 1, headerName: 'FULL POSTCODE', field: 'FULLPOSTCODE' },
-  { flex: 1, headerName: 'PROPERTY NAME', field: 'PROPERTY_NUM_NAME' },
-  { flex: 1, headerName: 'STREET NAME', field: 'STREET_NAME' },
-  { flex: 1, headerName: 'AREA, TOWN, CITY', field: 'AREA_TOWN_CITY' },
-  { flex: 1, headerName: 'OWN, REFERENCE', field: 'OWN_REF' },
+  {
+    flex: 1,
+    minWidth: 110,
+    headerName: 'PROPERTY ID',
+    field: 'PROPERTY_ID',
+    renderHeader: () => <span style={headerStyle}>PROPERTY ID</span>
+  },
+  {
+    flex: 1,
+    minWidth: 100,
+    headerName: 'SITE STATUS',
+    field: 'SITE_STATUS_DESC',
+    renderHeader: () => <span style={headerStyle}>SITE STATUS</span>
+  },
+  {
+    flex: 1,
+    minWidth: 120,
+    headerName: 'FULL POSTCODE',
+    field: 'FULLPOSTCODE',
+    renderHeader: () => <span style={headerStyle}>FULL POSTCODE</span>
+  },
+  {
+    flex: 1,
+    minWidth: 130,
+    headerName: 'PROPERTY NAME',
+    field: 'PROPERTY_NUM_NAME',
+    renderHeader: () => <span style={headerStyle}>PROPERTY NAME</span>
+  },
+  {
+    flex: 1,
+    minWidth: 120,
+    headerName: 'STREET NAME',
+    field: 'STREET_NAME',
+    renderHeader: () => <span style={headerStyle}>STREET NAME</span>
+  },
+  {
+    flex: 1,
+    minWidth: 130,
+    headerName: 'AREA, TOWN, CITY',
+    field: 'AREA_TOWN_CITY',
+    renderHeader: () => <span style={headerStyle}>AREA, TOWN, CITY</span>
+  },
+  {
+    flex: 1,
+    minWidth: 120,
+    headerName: 'OWN, REFERENCE',
+    field: 'OWN_REF',
+    renderHeader: () => <span style={headerStyle}>OWN, REFERENCE</span>
+  },
 
   // { flex: 1, headerName: 'LATITUDE', field: 'LATITUDE' },
   // { flex: 1, headerName: 'LONGITUDE', field: 'LONGITUDE' },

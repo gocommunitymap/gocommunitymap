@@ -30,7 +30,7 @@ export const columns = [
     headerName: 'CREATED DATE',
     field: 'created_on',
     type: 'date',
-    valueGetter: ({ row }) => row.created_on && new Date(row.created_on),
+    valueGetter: ({ row }) => row?.created_on && new Date(row.created_on),
     renderCell: ({ row }) => dateConvert(row.created_on)
   }
 ]

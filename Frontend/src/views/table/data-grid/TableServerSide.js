@@ -125,15 +125,14 @@ const columns = [
 
 const TableServerSide = () => {
   // ** State
-  const [page, setPage] = useState(0)
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 7 })
   const [total, setTotal] = useState(0)
   const [sort, setSort] = useState('asc')
-  const [pageSize, setPageSize] = useState(7)
   const [rows, setRows] = useState([])
   const [searchValue, setSearchValue] = useState('')
   const [sortColumn, setSortColumn] = useState('full_name')
   function loadServerRows(currentPage, data) {
-    return data.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
+    return data.slice(currentPage * paginationModel.pageSize, (currentPage + 1) * paginationModel.pageSize)
   }
 
   const fetchTableData = useCallback(
@@ -148,11 +147,11 @@ const TableServerSide = () => {
         })
         .then(res => {
           setTotal(res.data.total)
-          setRows(loadServerRows(page, res.data.data))
+          setRows(loadServerRows(paginationModel.page, res.data.data))
         })
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [page, pageSize]
+    [paginationModel]
   )
   useEffect(() => {
     fetchTableData(sort, searchValue, sortColumn)
@@ -184,15 +183,17 @@ const TableServerSide = () => {
         rowCount={total}
         columns={columns}
         checkboxSelection
-        pageSize={pageSize}
         sortingMode='server'
         paginationMode='server'
         onSortModelChange={handleSortModel}
         pageSizeOptions={[7, 10, 25, 50]}
-        onPageChange={newPage => setPage(newPage)}
-        components={{ Toolbar: ServerSideToolbar }}
-        onPageSizeChange={newPageSize => setPageSize(newPageSize)}
-        componentsProps={{
+        paginationModel={paginationModel}
+        onPaginationModelChange={model => {
+          setPaginationModel(model)
+          fetchTableData(sort, searchValue, sortColumn)
+        }}
+        slots={{ toolbar: ServerSideToolbar }}
+        slotProps={{
           baseButton: {
             variant: 'outlined'
           },

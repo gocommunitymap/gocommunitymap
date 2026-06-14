@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { getBookingAPI } from 'src/configs/services/api-methods/guest'
-import { defaultPageFont } from 'src/@core/utils'
+import { dateConvert, defaultPageFont } from 'src/@core/utils'
 import GuestBlankLayout from 'src/@core/layouts/GuestLayoutAppBar'
 import SeoHead from 'src/components/SeoHead'
 import themeConfig from 'src/configs/themeConfig'
@@ -38,6 +38,8 @@ const today = () => new Date().toLocaleDateString('en-US', { month: 'long', day:
 const HotelBookingInvoice = () => {
   const router = useRouter()
   const { ref } = router.query
+  const isRentalInvoice = router.pathname?.startsWith('/rentals/')
+  const bookingRouteBase = isRentalInvoice ? 'rentals' : 'hotels'
   const invoiceRef = useRef(null)
 
   const [booking, setBooking] = useState(null)
@@ -66,7 +68,7 @@ const HotelBookingInvoice = () => {
   // Build QR data URL once booking is loaded
   useEffect(() => {
     if (!booking) return
-    const bookingUrl = `${window.location.origin}/hotels/booking/scan/${booking.BOOKING_NO || ref}`
+    const bookingUrl = `${window.location.origin}/${bookingRouteBase}/booking/scan/${booking.BOOKING_NO || ref}`
     import('qrcode').then(({ default: QRCode }) => {
       QRCode.toDataURL(bookingUrl, {
         width: 200,
@@ -74,7 +76,7 @@ const HotelBookingInvoice = () => {
         color: { dark: '#1a7d4d', light: '#ffffff' }
       }).then(url => setQrDataUrl(url))
     })
-  }, [booking, ref])
+  }, [booking, ref, bookingRouteBase])
 
   // PDF download using jsPDF + autoTable (programmatic — no page-break issues)
   const handleDownloadPDF = async () => {
@@ -107,10 +109,10 @@ const HotelBookingInvoice = () => {
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(16)
       doc.setFont('helvetica', 'bold')
-      doc.text('Go Community Map', M, 14)
+      doc.text(themeConfig.templateName, M, 14)
       doc.setFontSize(9)
       doc.setFont('helvetica', 'normal')
-      doc.text('Hotel Booking', M, 22)
+      doc.text(isRentalInvoice ? 'Rental Booking' : 'Hotel Booking', M, 22)
 
       doc.setFontSize(8)
       doc.text('INVOICE', W - M, 10, { align: 'right' })
@@ -153,7 +155,9 @@ const HotelBookingInvoice = () => {
       curY = 58
 
       // ── BILLED TO / PROPERTY / STAY PERIOD ───────────────────────────────
-      const col3 = CW / 3
+      const detailColumnCount = 3
+      const detailColumnWidth = CW / detailColumnCount
+      let billedY = curY
 
       // Billed To
       doc.setTextColor(39, 174, 96)
@@ -163,7 +167,7 @@ const HotelBookingInvoice = () => {
       doc.setTextColor(26, 26, 26)
       doc.setFontSize(11)
       doc.text(guestName, M, curY + 6)
-      let billedY = curY + 12
+      billedY = curY + 12
       doc.setFontSize(8)
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(85, 85, 85)
@@ -181,27 +185,31 @@ const HotelBookingInvoice = () => {
       }
 
       // Property
-      const propX = M + col3
+      const propX = M + detailColumnWidth
       doc.setTextColor(39, 174, 96)
       doc.setFontSize(7)
       doc.setFont('helvetica', 'bold')
       doc.text('PROPERTY', propX, curY)
       doc.setTextColor(26, 26, 26)
       doc.setFontSize(11)
-      const propNameLines = doc.splitTextToSize(booking.PROPERTY_NAME || 'Hotel Property', col3 - 6)
+
+      const propNameLines = doc.splitTextToSize(
+        booking.PROPERTY_NAME || (isRentalInvoice ? 'Rental Property' : 'Hotel Property'),
+        detailColumnWidth - 6
+      )
       doc.text(propNameLines, propX, curY + 6)
       let propY = curY + 6 + propNameLines.length * 5.5
       if (booking.PLACE) {
         doc.setFontSize(8)
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(85, 85, 85)
-        const placeLines = doc.splitTextToSize(booking.PLACE, col3 - 6)
+        const placeLines = doc.splitTextToSize(booking.PLACE, detailColumnWidth - 6)
         doc.text(placeLines, propX, propY)
         propY += placeLines.length * 4.5
       }
 
       // Stay Period
-      const stayX = M + col3 * 2
+      const stayX = M + detailColumnWidth * 2
       doc.setTextColor(39, 174, 96)
       doc.setFontSize(7)
       doc.setFont('helvetica', 'bold')
@@ -217,7 +225,7 @@ const HotelBookingInvoice = () => {
         doc.setTextColor(26, 26, 26)
         doc.setFontSize(8.5)
         doc.setFont('helvetica', 'bold')
-        doc.text(dateStr, stayX, stayY, { maxWidth: col3 - 4 })
+        doc.text(dateStr, stayX, stayY, { maxWidth: detailColumnWidth - 4 })
         stayY += 4.5
         doc.setTextColor(...hintColor)
         doc.setFontSize(7)
@@ -225,10 +233,20 @@ const HotelBookingInvoice = () => {
         doc.text(hint, stayX, stayY)
         stayY += 6
       }
-      drawStayDate('CHECK-IN', fmtDate(booking.CHECK_IN), 'From 3:00 PM', [39, 174, 96])
-      drawStayDate('CHECK-OUT', fmtDate(booking.CHECK_OUT), 'By 11:00 AM', [230, 126, 34])
+      drawStayDate(
+        'CHECK-IN',
+        dateConvert(booking.CHECK_IN),
+        !isRentalInvoice && booking?.CHECK_IN_TIMESLOT_DESC ? `From ${booking.CHECK_IN_TIMESLOT_DESC}` : '',
+        [39, 174, 96]
+      )
+      drawStayDate(
+        'CHECK-OUT',
+        dateConvert(booking.CHECK_OUT),
+        !isRentalInvoice && booking?.CHECK_OUT_TIMESLOT_DESC ? `By ${booking.CHECK_OUT_TIMESLOT_DESC}` : '',
+        [230, 126, 34]
+      )
 
-      curY = Math.max(billedY, propY, stayY) + 8
+      curY = Math.max(propY, stayY, billedY) + 8
 
       // Divider
       doc.setDrawColor(200, 235, 215)
@@ -248,13 +266,17 @@ const HotelBookingInvoice = () => {
       doc.setDrawColor(200, 235, 215)
       doc.roundedRect(M, curY, CW, detailH, 2, 2, 'FD')
 
-      const detailItems = [
-        ['NIGHTS', `${nights} night${nights !== 1 ? 's' : ''}`],
-        ['ROOMS', `${rooms} room${rooms !== 1 ? 's' : ''}`],
-        ['ADULTS', `${booking.ADULTS || 1} adult${Number(booking.ADULTS) !== 1 ? 's' : ''}`],
-        ['CHILDREN', `${booking.CHILDREN || 0}`],
-        ['EXPECTED ARRIVAL', booking.ARRIVAL_TIME || '\u2014']
-      ]
+      const detailItems = isRentalInvoice
+        ? [
+            ['ADULTS', `${booking.ADULTS || 1} adult${Number(booking.ADULTS) !== 1 ? 's' : ''}`],
+            ['CHILDREN', `${booking.CHILDREN || 0}`],
+            ['EXPECTED ARRIVAL', booking.ARRIVAL_TIME ? booking.ARRIVAL_TIME : '\u2014']
+          ]
+        : [
+            ['ADULTS', `${booking.ADULTS || 1} adult${Number(booking.ADULTS) !== 1 ? 's' : ''}`],
+            ['CHILDREN', `${booking.CHILDREN || 0}`],
+            ['EXPECTED ARRIVAL', booking.ARRIVAL_TIME ? booking.ARRIVAL_TIME : '\u2014']
+          ]
       const detColW = CW / detailItems.length
       detailItems.forEach(([label, value], i) => {
         const cx = M + i * detColW + detColW / 2
@@ -269,6 +291,39 @@ const HotelBookingInvoice = () => {
       })
       curY += detailH + 8
 
+      // ── ROOM DETAILS TABLE (hotels only) ──────────────────────────────────
+      if (!isRentalInvoice && roomDetails.length > 0) {
+        ensureSpace(20)
+        doc.setTextColor(39, 174, 96)
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'bold')
+        doc.text('ROOM DETAILS', M, curY)
+        curY += 2
+
+        autoTable(doc, {
+          startY: curY,
+          head: [['#', 'Room Type', 'Price/Night ($)', 'Qty']],
+          body: roomDetails.map((room, idx) => [
+            idx + 1,
+            room.ROOM_TYPE?.[0]?.ROOM_TYPE_DESC || '—',
+            `$ ${fmt(room.PRICE)}`,
+            room.ROOMS_QUANTITY || 1
+          ]),
+          headStyles: { fillColor: [26, 125, 77], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: {
+            0: { halign: 'left', cellWidth: 10 },
+            1: { cellWidth: 'auto' },
+            2: { halign: 'right', cellWidth: 32 },
+            3: { halign: 'right', cellWidth: 16 }
+          },
+          alternateRowStyles: { fillColor: [249, 253, 251] },
+          margin: { left: M, right: M }
+        })
+
+        curY = doc.lastAutoTable.finalY + 8
+      }
+
       // ── CHARGES TABLE ─────────────────────────────────────────────────────
       doc.setTextColor(39, 174, 96)
       doc.setFontSize(7)
@@ -278,17 +333,21 @@ const HotelBookingInvoice = () => {
 
       autoTable(doc, {
         startY: curY,
-        head: [['Description', 'Unit Price', 'Nights \u00D7 Rooms', 'Amount ($)']],
+        head: [['Description', 'Unit Price', isRentalInvoice ? 'Nights' : 'Nights \u00D7 Rooms', 'Amount ($)']],
         body: [
           [
             {
-              content: `${booking.PROPERTY_NAME || 'Hotel Room'}\n${
-                booking.ROOM_NAME ? `Room: ${booking.ROOM_NAME}` : 'Standard Room'
-              } \u00B7 ${fmtDate(booking.CHECK_IN)} \u2192 ${fmtDate(booking.CHECK_OUT)}`,
+              content: `${booking.PROPERTY_NAME || (isRentalInvoice ? 'Rental Stay' : 'Hotel Room')}\n${
+                isRentalInvoice
+                  ? `${fmtDate(booking.CHECK_IN)} \u2192 ${fmtDate(booking.CHECK_OUT)}`
+                  : `${booking.ROOM_NAME ? `Room: ${booking.ROOM_NAME}` : 'Standard Room'} \u00B7 ${fmtDate(
+                      booking.CHECK_IN
+                    )} \u2192 ${fmtDate(booking.CHECK_OUT)}`
+              }`,
               styles: { fontStyle: 'bold' }
             },
             ratePerNight > 0 ? `$ ${fmt(ratePerNight)}` : '\u2014',
-            `${nights} \u00D7 ${rooms}`,
+            isRentalInvoice ? `${nights}` : `${nights} \u00D7 ${rooms}`,
             `$ ${fmt(subtotal)}`
           ],
           [
@@ -369,7 +428,7 @@ const HotelBookingInvoice = () => {
       doc.text(verifyLines, refX, curY + 30)
       doc.setTextColor(39, 174, 96)
       doc.text(
-        `${window.location.origin}/hotels/booking/scan/${booking.BOOKING_NO}`,
+        `${window.location.origin}/${bookingRouteBase}/booking/scan/${booking.BOOKING_NO}`,
         refX,
         curY + 30 + verifyLines.length * 4,
         { maxWidth: CW - 62 - 30 }
@@ -419,14 +478,14 @@ const HotelBookingInvoice = () => {
         doc.setTextColor(255, 255, 255)
         doc.setFontSize(9)
         doc.setFont('helvetica', 'bold')
-        doc.text('GoCommunityMap', M, fY)
+        doc.text(themeConfig.templateName, M, fY)
         doc.setFontSize(7)
         doc.setFont('helvetica', 'normal')
-        doc.text('Hotel Booking Services \u00B7 www.gocommunitymap.com', M, fY + 5)
+        doc.text(`${isRentalInvoice ? 'Rental' : 'Hotel'} Booking Services \u00B7 www.gocommunitymap.com`, M, fY + 5)
         doc.text('This is a computer-generated invoice and does not require a signature.', W - M, fY, {
           align: 'right'
         })
-        doc.text('\u00A9 2026 GoCommunityMap. All rights reserved.', W - M, fY + 5, { align: 'right' })
+        doc.text(`\u00A9 2026 ${themeConfig.templateName}. All rights reserved.`, W - M, fY + 5, { align: 'right' })
       }
 
       doc.save(`Invoice-${ref}.pdf`)
@@ -443,12 +502,27 @@ const HotelBookingInvoice = () => {
   const rooms = Number(booking?.ROOMS || 1)
   const subtotal = Number(booking?.SUBTOTAL || 0)
   const serviceFee = Number(booking?.SERVICE_FEE || 0)
+
   const total = Number(booking?.TOTAL || 0)
-  const ratePerNight = nights > 0 && rooms > 0 ? subtotal / nights / rooms : 0
+  const rateDivisor = isRentalInvoice ? nights : nights * rooms
+  const ratePerNight = rateDivisor > 0 ? subtotal / rateDivisor : 0
 
   const guestName = `${booking?.GUEST_FIRST_NAME || ''} ${booking?.GUEST_LAST_NAME || ''}`.trim() || '—'
   const status = (booking?.STATUS || 'CONFIRMED').toUpperCase()
   const statusColor = status === 'CONFIRMED' ? '#27ae60' : status === 'CANCELLED' ? '#e53935' : '#f59e0b'
+
+  const roomDetails = !isRentalInvoice
+    ? (() => {
+        if (!booking?.ROOM_DETAILS) return []
+        try {
+          const parsed = JSON.parse(booking.ROOM_DETAILS)
+
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      })()
+    : []
 
   // ── print style (injected once) ─────────────────────────────────────────
   const printStyle = `
@@ -495,8 +569,8 @@ const HotelBookingInvoice = () => {
   return (
     <>
       <SeoHead
-        title={`Invoice #${booking.BOOKING_NO} – GoCommunityMap`}
-        description={`Hotel booking invoice for ${guestName}`}
+        title={`Invoice #${booking.BOOKING_NO} – ${themeConfig.templateName}`}
+        description={`${isRentalInvoice ? 'Rental' : 'Hotel'} booking invoice`}
       />
       <Head>
         <style>{printStyle}</style>
@@ -583,7 +657,9 @@ const HotelBookingInvoice = () => {
                   {themeConfig.templateName}
                 </span>
               </div>
-              <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: 13 }}>Hotel Booking</p>
+              <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: 13 }}>
+                {isRentalInvoice ? 'Rental Booking' : 'Hotel Booking'}
+              </p>
             </div>
 
             {/* Right: INVOICE label */}
@@ -669,7 +745,7 @@ const HotelBookingInvoice = () => {
             <div style={{ flex: 1, minWidth: 220 }}>
               <p style={sectionLabel}>Property</p>
               <p style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>
-                {booking.PROPERTY_NAME || 'Hotel Property'}
+                {booking.PROPERTY_NAME || (isRentalInvoice ? 'Rental Property' : 'Hotel Property')}
               </p>
               {booking.PLACE && <p style={{ margin: '0 0 2px', fontSize: 13, color: '#555' }}>{booking.PLACE}</p>}
             </div>
@@ -691,7 +767,11 @@ const HotelBookingInvoice = () => {
                     Check-in
                   </p>
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#333' }}>{fmtDate(booking.CHECK_IN)}</p>
-                  <p style={{ margin: '1px 0 0', fontSize: 11, color: '#27ae60' }}>From 3:00 PM</p>
+                  {!isRentalInvoice && (
+                    <p style={{ margin: '1px 0 0', fontSize: 11, color: '#27ae60' }}>
+                      {booking?.CHECK_IN_TIMESLOT_DESC ? `From ${booking.CHECK_IN_TIMESLOT_DESC}` : 'From —'}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p
@@ -708,7 +788,11 @@ const HotelBookingInvoice = () => {
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#333' }}>
                     {fmtDate(booking.CHECK_OUT)}
                   </p>
-                  <p style={{ margin: '1px 0 0', fontSize: 11, color: '#e67e22' }}>By 11:00 AM</p>
+                  {!isRentalInvoice && (
+                    <p style={{ margin: '1px 0 0', fontSize: 11, color: '#e67e22' }}>
+                      {booking?.CHECK_OUT_TIMESLOT_DESC ? `By ${booking.CHECK_OUT_TIMESLOT_DESC}` : 'By —'}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -730,17 +814,26 @@ const HotelBookingInvoice = () => {
                 padding: '16px 20px'
               }}
             >
-              {[
-                { icon: '🌙', label: 'Nights', value: `${nights} night${nights !== 1 ? 's' : ''}` },
-                { icon: '🚪', label: 'Rooms', value: `${rooms} room${rooms !== 1 ? 's' : ''}` },
-                {
-                  icon: '👤',
-                  label: 'Adults',
-                  value: `${booking.ADULTS || 1} adult${Number(booking.ADULTS) !== 1 ? 's' : ''}`
-                },
-                { icon: '👶', label: 'Children', value: `${booking.CHILDREN || 0}` },
-                { icon: '🕐', label: 'Expected Arrival', value: booking.ARRIVAL_TIME || '—' }
-              ].map(({ icon, label, value }) => (
+              {(isRentalInvoice
+                ? [
+                    {
+                      icon: '👤',
+                      label: 'Adults',
+                      value: `${booking.ADULTS || 1} adult${Number(booking.ADULTS) !== 1 ? 's' : ''}`
+                    },
+                    { icon: '👶', label: 'Children', value: `${booking.CHILDREN || 0}` },
+                    { icon: '🕐', label: 'Expected Arrival', value: booking.ARRIVAL_TIME || '—' }
+                  ]
+                : [
+                    {
+                      icon: '👤',
+                      label: 'Adults',
+                      value: `${booking.ADULTS || 1} adult${Number(booking.ADULTS) !== 1 ? 's' : ''}`
+                    },
+                    { icon: '👶', label: 'Children', value: `${booking.CHILDREN || 0}` },
+                    { icon: '🕐', label: 'Expected Arrival', value: booking.ARRIVAL_TIME || '—' }
+                  ]
+              ).map(({ icon, label, value }) => (
                 <div key={label} style={{ flex: '1 1 130px', textAlign: 'center' }}>
                   <p style={{ margin: '0 0 4px', fontSize: 20 }}>{icon}</p>
                   <p
@@ -760,99 +853,191 @@ const HotelBookingInvoice = () => {
             </div>
           </div>
 
-          {/* ──────────── LINE ITEMS TABLE ──────────── */}
+          {/* ──────────── RENTAL DETAILS (rentals only) ──────────── */}
+          {isRentalInvoice && (
+            <div style={{ padding: '0 48px 24px' }}>
+              <p style={sectionLabel}>Rental Details</p>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#1a7d4d' }}>
+                      {['Description', 'Unit Price', 'Nights', 'Amount'].map((h, i) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: '10px 14px',
+                            color: '#fff',
+                            fontWeight: 700,
+                            textAlign: i === 0 ? 'left' : 'right',
+                            fontSize: 12,
+                            letterSpacing: 0.5
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ backgroundColor: '#f9fdfb', borderBottom: '1px solid #e8f5ef' }}>
+                      <td style={{ padding: '11px 14px', color: '#333', fontWeight: 600 }}>
+                        <div>{booking.PROPERTY_NAME || 'Rental Property'}</div>
+                        <div style={{ fontSize: 12, color: '#888', fontWeight: 'normal', marginTop: 4 }}>
+                          {fmtDate(booking.CHECK_IN)} to {fmtDate(booking.CHECK_OUT)}
+                        </div>
+                      </td>
+                      <td style={{ padding: '11px 14px', textAlign: 'right', color: '#27ae60', fontWeight: 600 }}>
+                        $ {fmt(ratePerNight)}
+                      </td>
+                      <td style={{ padding: '11px 14px', textAlign: 'right', color: '#555' }}>{nights}</td>
+                      <td style={{ padding: '11px 14px', textAlign: 'right', color: '#27ae60', fontWeight: 600 }}>
+                        $ {fmt(subtotal)}
+                      </td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid #e8f5ef', backgroundColor: '#fff' }}>
+                      <td colSpan='2' style={{ padding: '9px 14px', textAlign: 'right', color: '#555', fontSize: 12 }}>
+                        Subtotal
+                      </td>
+                      <td
+                        colSpan='2'
+                        style={{
+                          padding: '9px 14px',
+                          textAlign: 'right',
+                          color: '#333',
+                          fontWeight: 600,
+                          fontSize: 12
+                        }}
+                      >
+                        $ {fmt(subtotal)}
+                      </td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid #e8f5ef', backgroundColor: '#fff' }}>
+                      <td colSpan='2' style={{ padding: '9px 14px', textAlign: 'right', color: '#555', fontSize: 12 }}>
+                        Taxes & fees
+                      </td>
+                      <td
+                        colSpan='2'
+                        style={{
+                          padding: '9px 14px',
+                          textAlign: 'right',
+                          color: '#333',
+                          fontWeight: 600,
+                          fontSize: 12
+                        }}
+                      >
+                        $ {fmt(serviceFee)}
+                      </td>
+                    </tr>
+                    <tr style={{ backgroundColor: '#1a7d4d' }}>
+                      <td
+                        colSpan='2'
+                        style={{
+                          padding: '12px 14px',
+                          textAlign: 'right',
+                          color: '#fff',
+                          fontWeight: 700,
+                          fontSize: 13
+                        }}
+                      >
+                        Total Paid
+                      </td>
+                      <td
+                        colSpan='2'
+                        style={{
+                          padding: '12px 14px',
+                          textAlign: 'right',
+                          color: '#fff',
+                          fontWeight: 700,
+                          fontSize: 14
+                        }}
+                      >
+                        $ {fmt(total)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ──────────── ROOM DETAILS (hotels only) ──────────── */}
+          {!isRentalInvoice && roomDetails.length > 0 && (
+            <div style={{ padding: '0 48px 24px' }}>
+              <p style={sectionLabel}>Room Details</p>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#1a7d4d' }}>
+                      {['#', 'Room Type', 'Price / Night', 'Qty', 'Nights', 'Amount'].map((h, i) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: '10px 14px',
+                            color: '#fff',
+                            fontWeight: 700,
+                            textAlign: i === 0 || i === 1 ? 'left' : 'right',
+                            fontSize: 12,
+                            letterSpacing: 0.5
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roomDetails.map((room, idx) => {
+                      const roomAmount = Number(room.PRICE || 0) * (room.ROOMS_QUANTITY || 1) * nights
+
+                      return (
+                        <tr
+                          key={room.ROOM_ID || idx}
+                          style={{
+                            backgroundColor: idx % 2 === 0 ? '#f9fdfb' : '#fff',
+                            borderBottom: '1px solid #e8f5ef'
+                          }}
+                        >
+                          <td style={{ padding: '11px 14px', color: '#888', fontWeight: 600 }}>{idx + 1}</td>
+                          <td style={{ padding: '11px 14px', color: '#333', fontWeight: 600 }}>
+                            {room.ROOM_TYPE?.[0]?.ROOM_TYPE_DESC || '—'}
+                          </td>
+                          <td style={{ padding: '11px 14px', textAlign: 'right', color: '#27ae60', fontWeight: 600 }}>
+                            $ {fmt(room.PRICE)}
+                          </td>
+                          <td style={{ padding: '11px 14px', textAlign: 'right', color: '#555' }}>
+                            {room.ROOMS_QUANTITY || 1}
+                          </td>
+                          <td style={{ padding: '11px 14px', textAlign: 'right', color: '#555' }}>{nights}</td>
+                          <td style={{ padding: '11px 14px', textAlign: 'right', color: '#27ae60', fontWeight: 600 }}>
+                            $ {fmt(roomAmount)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ──────────── PAYMENT DETAILS ──────────── */}
           <div style={{ padding: '0 48px 24px' }}>
-            <p style={sectionLabel}>Charges</p>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ backgroundColor: '#1a7d4d' }}>
-                  {['Description', 'Unit Price', 'Nights × Rooms', 'Amount ($)'].map((h, i) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: '10px 14px',
-                        color: '#fff',
-                        fontWeight: 700,
-                        textAlign: i === 0 ? 'left' : 'right',
-                        fontSize: 12,
-                        letterSpacing: 0.5
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {/* Room charge row */}
-                <tr style={{ backgroundColor: '#f9fdfb', borderBottom: '1px solid #e8f5ef' }}>
-                  <td style={{ padding: '12px 14px', color: '#333', fontWeight: 600 }}>
-                    <p style={{ margin: 0 }}>{booking.PROPERTY_NAME || 'Hotel Room'}</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>
-                      {booking.ROOM_NAME ? `Room: ${booking.ROOM_NAME}` : 'Standard Room'} · {fmtDate(booking.CHECK_IN)}{' '}
-                      → {fmtDate(booking.CHECK_OUT)}
-                    </p>
-                  </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', color: '#555' }}>
-                    {ratePerNight > 0 ? `$ ${fmt(ratePerNight)}` : '—'}
-                  </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', color: '#555' }}>
-                    {nights} × {rooms}
-                  </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600, color: '#27ae60' }}>
-                    $ {fmt(subtotal)}
-                  </td>
-                </tr>
-
-                {/* Service / taxes row */}
-                <tr style={{ backgroundColor: '#fff', borderBottom: '1px solid #e8f5ef' }}>
-                  <td style={{ padding: '12px 14px', color: '#333', fontWeight: 600 }}>
-                    Taxes &amp; Service Fees
-                    <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>
-                      Platform &amp; local taxes included
-                    </p>
-                  </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', color: '#555' }}>—</td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', color: '#555' }}>1</td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600, color: '#555' }}>
-                    $ {fmt(serviceFee)}
-                  </td>
-                </tr>
-              </tbody>
-
-              {/* Totals */}
-              <tfoot>
-                <tr style={{ borderTop: '2px solid #e8f5ef' }}>
-                  <td colSpan={3} style={{ padding: '10px 14px', textAlign: 'right', color: '#555', fontSize: 13 }}>
-                    Subtotal
-                  </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'right', color: '#333', fontWeight: 600 }}>
-                    $ {fmt(subtotal)}
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={3} style={{ padding: '6px 14px', textAlign: 'right', color: '#555', fontSize: 13 }}>
-                    Taxes &amp; Fees
-                  </td>
-                  <td style={{ padding: '6px 14px', textAlign: 'right', color: '#333', fontWeight: 600 }}>
-                    $ {fmt(serviceFee)}
-                  </td>
-                </tr>
-                <tr style={{ backgroundColor: '#1a7d4d' }}>
-                  <td
-                    colSpan={3}
-                    style={{ padding: '14px 14px', textAlign: 'right', color: '#fff', fontWeight: 800, fontSize: 14 }}
-                  >
-                    Total Paid
-                  </td>
-                  <td
-                    style={{ padding: '14px 14px', textAlign: 'right', color: '#fff', fontWeight: 900, fontSize: 18 }}
-                  >
-                    $ {fmt(total)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+            <p style={sectionLabel}>Payment Details</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#555', fontSize: 13 }}>{isRentalInvoice ? 'Subtotal' : 'Room subtotal'}</span>
+                <span style={{ color: '#333', fontWeight: 600, fontSize: 13 }}>$ {fmt(subtotal)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#555', fontSize: 13 }}>Taxes & fees</span>
+                <span style={{ color: '#333', fontWeight: 600, fontSize: 13 }}>$ {fmt(serviceFee)}</span>
+              </div>
+              <div style={{ borderTop: '1px solid #ddd', marginTop: '4px', paddingTop: '12px' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#333', fontWeight: 700, fontSize: 14 }}>Total paid</span>
+                <span style={{ color: '#27ae60', fontWeight: 800, fontSize: 16 }}>$ {fmt(total)}</span>
+              </div>
+            </div>
           </div>
 
           {/* ──────────── QR + BOOKING REF ──────────── */}
@@ -919,8 +1104,8 @@ const HotelBookingInvoice = () => {
               </p>
               <p style={{ margin: 0, fontSize: 11, color: '#27ae60', wordBreak: 'break-all' }}>
                 {typeof window !== 'undefined'
-                  ? `${window.location.origin}/hotels/booking/scan/${booking.BOOKING_NO}`
-                  : `/hotels/booking/scan/${booking.BOOKING_NO}`}
+                  ? `${window.location.origin}/${bookingRouteBase}/booking/scan/${booking.BOOKING_NO}`
+                  : `/${bookingRouteBase}/booking/scan/${booking.BOOKING_NO}`}
               </p>
             </div>
 
@@ -956,7 +1141,7 @@ const HotelBookingInvoice = () => {
             }}
           >
             <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#92640a' }}>
-              📋 Booking Notes &amp; Cancellation Policy
+              📋 Booking Notes & Cancellation Policy
             </p>
             <p style={{ margin: 0, fontSize: 12, color: '#7a5c1e', lineHeight: 1.6 }}>
               Free cancellation available until 48 hours before check-in. Modifications subject to availability and rate
@@ -978,14 +1163,14 @@ const HotelBookingInvoice = () => {
             }}
           >
             <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#fff' }}>GoCommunityMap</p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#fff' }}>{themeConfig.templateName}</p>
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-                Hotel Booking Services · www.gocommunitymap.com
+                {isRentalInvoice ? 'Rental' : 'Hotel'} Booking Services · www.gocommunitymap.com
               </p>
             </div>
             <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)', textAlign: 'right' }}>
               This is a computer-generated invoice and does not require a signature.
-              <br />© {new Date().getFullYear()} GoCommunityMap. All rights reserved.
+              <br />© {new Date().getFullYear()} {themeConfig.templateName}. All rights reserved.
             </p>
           </div>
         </div>

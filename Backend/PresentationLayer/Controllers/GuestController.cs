@@ -17,7 +17,7 @@ namespace PresentationLayer.Controllers
             _guest = guest;
         }
         [HttpGet]
-        public IActionResult GetProperties([FromQuery] GetProperties getProperties, int PAGE_NUMBER, int PAGE_SIZE)
+        public IActionResult GetProperties([FromQuery] GetPropertiesFilters getProperties, int PAGE_NUMBER, int PAGE_SIZE)
         {
             try
             {
@@ -36,6 +36,28 @@ namespace PresentationLayer.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet]
+        public IActionResult GetPropertiesForMap([FromQuery] GetPropertiesFiltersForMap getProperties)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid Data!");
+
+                var result = _guest.GetPropertiesForMap(getProperties);
+
+                if (result == null)
+                    return BadRequest("Request Faild!");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                //log error
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpGet]
         public IActionResult GetPropertiesFullDetails([FromQuery] GetProperties getProperties, int PAGE_NUMBER,int PAGE_SIZE)
         {

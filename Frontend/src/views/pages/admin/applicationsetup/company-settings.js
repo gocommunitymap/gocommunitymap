@@ -35,7 +35,6 @@ export const CompanySettings = () => {
         <Grid item xs={12} md={3}>
           <TextField fullWidth multiline value={''} label='Website Url' size='small' />
         </Grid>
-
       </Grid>
     </form>
   )

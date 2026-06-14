@@ -39,8 +39,8 @@ const Img = styled('img')(({ theme }) => ({
 }))
 
 const defaultValues = {
-  minBeds: bedsOptions[0],
-  maxPrice: priceOptions[0],
+  minBeds: bedsOptions?.length ? bedsOptions[0] ?? { value: '0', label: 'Any' } : { value: '0', label: 'Any' },
+  maxPrice: priceOptions?.length ? priceOptions[0] ?? { value: '0', label: 'Any' } : { value: '0', label: 'Any' },
   newBuildHomesOnly: false,
   keywords: null
 }
@@ -134,13 +134,7 @@ export const SearchHotelsSectionCard = ({ filterState, setFilterState, setIsFilt
                     <Grid item xs={12} textAlign='left'>
                       <Typography variant='subtitle2'>Search area</Typography>
                       {isLoaded ? (
-                        <GAutocomplete
-                          options={{
-                            componentRestrictions: { country: countryISO }
-                          }}
-                          onPlaceChanged={onPlaceChanged}
-                          onLoad={onLoad}
-                        >
+                        <GAutocomplete onPlaceChanged={onPlaceChanged} onLoad={onLoad}>
                           <TextField id='icons-start-adornment' size='medium' placeholder='Find Location' fullWidth />
                         </GAutocomplete>
                       ) : (

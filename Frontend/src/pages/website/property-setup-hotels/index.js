@@ -5,7 +5,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import DataGridHeaderToolbar from 'src/views/table/data-grid/DataGridHeaderToolbar'
 import Icon from 'src/@core/components/icon'
 import { useForm } from 'react-hook-form'
-import { getPropertySetupHotels, updatePropertySetupHotels, deletePropertySetupHotels } from 'src/store'
+import { getPropertySetupHotels, deletePropertySetupHotels } from 'src/store'
 import { toast } from 'react-hot-toast'
 import { columns } from 'src/views/pages/website/property-setup-hotels/static-data'
 import { dateConvert, getActiveProps, handleSearch, isAllowed } from 'src/@core/utils'
@@ -26,6 +26,8 @@ const PropertySetupHotels = () => {
   const [states, setStates] = useState({
     pageSize: 5
   })
+
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
 
   const [searchStates, setSearchStates] = useState({ searchText: '', filteredData: [] })
   const [deleteStates, setDeleteStates] = useState({ PROPERTY_ID: null, PROPERTY_NUM_NAME: null })
@@ -50,6 +52,7 @@ const PropertySetupHotels = () => {
     setStates({
       pageSize: 5
     })
+    setPaginationModel({ page: 0, pageSize: 5 })
     setSearchStates({ searchText: '', filteredData: [] })
   }
 
@@ -73,17 +76,18 @@ const PropertySetupHotels = () => {
           filterable: false,
           editable: false,
           disableColumnMenu: false,
-          flex: 1,
+
           minWidth: 100,
           align: 'right',
           headerAlign: 'right',
           headerName: 'Action',
           renderCell: ({ row }) => {
             return (
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'row' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'end', flexDirection: 'row' }}>
                 {isAllowed(permissions, 'U') && (
                   <Tooltip title='Edit' placement='top'>
                     <IconButton
+                      color='primary'
                       size='small'
                       onClick={() => replace(`/website/property-setup-hotels/form?id=${row.PROPERTY_ID}`)}
                     >
@@ -93,7 +97,7 @@ const PropertySetupHotels = () => {
                 )}
                 {isAllowed(permissions, 'D') && (
                   <Tooltip title='Delete' placement='top'>
-                    <IconButton size='small' onClick={() => handleConfirm(row)}>
+                    <IconButton color='error' size='small' onClick={() => handleConfirm(row)}>
                       <Icon icon='tabler:trash' />
                     </IconButton>
                   </Tooltip>
@@ -150,54 +154,47 @@ const PropertySetupHotels = () => {
         <Grid item xs={12}>
           <Card>
             <CardHeader title={pageTitle} />
-            <DataGrid
-              rowSelection={false}
-              rows={dataList ?? []}
-              pageSize={states.pageSize}
-              pageSizeOptions={[5, 10, 25]}
-              components={{ Toolbar: DataGridHeaderToolbar }}
-              onPageSizeChange={newPageSize => setStates({ ...states, pageSize: newPageSize })}
-              getRowHeight={() => 'auto'}
-              initialState={{
-                pagination: {
-                  paginationModel: {
-                    pageSize: states.pageSize
-                  }
-                }
-              }}
-              componentsProps={{
-                baseButton: {
-                  variant: 'outlined'
-                },
-                toolbar: {
-                  onClick: () => replace('/website/property-setup-hotels/form'),
-                  onChange: event => handleSearch({ value: event.target.value, data: store?.data, setSearchStates }),
-                  onPrint: () =>
-                    print({
-                      title: pageTitle,
-                      data: exportDataList
-                    }),
-                  onPdf: () =>
-                    generatePDF({
-                      title: pageTitle,
-                      data: exportDataList
-                    }),
-                  onRefresh: handleRefresh,
-                  clearSearch: () => handleSearch({ value: '', data: store?.data, setSearchStates }),
-                  exportTitle: pageTitle,
-                  exportData: exportDataList,
-                  columns,
-                  value: searchStates.searchText,
+            <Box sx={{ width: '100%', overflowX: 'auto' }}>
+              <DataGrid
+                rowSelection={false}
+                rows={dataList ?? []}
+                pageSizeOptions={[5, 10, 25]}
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                paginationMode='client'
+                slots={{ toolbar: DataGridHeaderToolbar }}
+                rowHeight={40}
+                slotProps={{
+                  baseButton: {
+                    variant: 'contained'
+                  },
+                  toolbar: {
+                    onClick: () => replace('/website/property-setup-hotels/form'),
+                    onChange: event => handleSearch({ value: event.target.value, data: store?.data, setSearchStates }),
+                    onPrint: () =>
+                      print({
+                        title: pageTitle,
+                        data: exportDataList
+                      }),
+                    onPdf: () =>
+                      generatePDF({
+                        title: pageTitle,
+                        data: exportDataList
+                      }),
+                    onRefresh: handleRefresh,
+                    clearSearch: () => handleSearch({ value: '', data: store?.data, setSearchStates }),
+                    exportTitle: pageTitle,
+                    exportData: exportDataList,
+                    columns,
+                    value: searchStates.searchText,
 
-                  permissions: { C: isAllowed(permissions, 'C'), E: isAllowed(permissions, 'E') }
-                }
-              }}
-              autoHeight
-              rowHeight={32}
-              getRowId={row => `${row.PROPERTY_ID}`}
-              columns={updateColumns}
-              disableSelectionOnClick
-            />
+                    permissions: { C: isAllowed(permissions, 'C'), E: isAllowed(permissions, 'E') }
+                  }
+                }}
+                getRowId={row => `${row.PROPERTY_ID}`}
+                columns={updateColumns}
+              />
+            </Box>
           </Card>
         </Grid>
         {/* -----Modal----- */}

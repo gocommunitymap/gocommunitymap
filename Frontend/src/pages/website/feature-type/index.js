@@ -76,12 +76,14 @@ const FeatureType = () => {
   const handleEdit = row => {
     const hotelsEnabled = toFlagValue(row.PARAMETER_CODE_1)
     const rentalEnabled = toFlagValue(row.PARAMETER_CODE_2)
+    const roomsEnabled = toFlagValue(row.PARAMETER_CODE_5)
 
     setValue('ID', row.ID)
     setValue('PARAMETER_CODE_3', row.PARAMETER_CODE_3)
     setValue('PARAMETER_DESCRIPTION_3', row.PARAMETER_DESCRIPTION_3)
     setValue('HOTELS_ENABLED', hotelsEnabled)
     setValue('RENTAL_ENABLED', rentalEnabled)
+    setValue('ROOMS_ENABLED', roomsEnabled)
     setValue('ACTIVE', row.ACTIVE)
     setStates({ ...states, isEdit: true, isOpenModal: true, modalForm: 'c' })
   }
@@ -107,7 +109,7 @@ const FeatureType = () => {
     let isOpenModal = states.isOpenModal
     const hotelsEnabled = Boolean(data.HOTELS_ENABLED)
     const rentalEnabled = Boolean(data.RENTAL_ENABLED)
-
+    const roomsEnabled = Boolean(data.ROOMS_ENABLED)
     setStates({ ...states, isSubmit: true })
     dispatch(
       updateFeatureType({
@@ -118,6 +120,8 @@ const FeatureType = () => {
         PARAMETER_DESCRIPTION_1: 'Hotels',
         PARAMETER_CODE_2: rentalEnabled ? 'Y' : 'N',
         PARAMETER_DESCRIPTION_2: 'Rental',
+        PARAMETER_CODE_5: roomsEnabled ? 'Y' : 'N',
+        PARAMETER_DESCRIPTION_5: 'Rooms',
         ACTIVE: data.ACTIVE
       })
     ).then(response => {
@@ -152,24 +156,24 @@ const FeatureType = () => {
           filterable: false,
           editable: false,
           disableColumnMenu: false,
-          flex: 1,
+
           minWidth: 100,
           align: 'right',
           headerAlign: 'right',
           headerName: 'Action',
           renderCell: ({ row }) => {
             return (
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'row' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'end', flexDirection: 'row' }}>
                 {isAllowed(permissions, 'U') && (
                   <Tooltip title='Edit' placement='top'>
-                    <IconButton size='small' onClick={() => handleEdit(row)}>
+                    <IconButton color='primary' size='small' onClick={() => handleEdit(row)}>
                       <Icon icon='tabler:edit' />
                     </IconButton>
                   </Tooltip>
                 )}
                 {isAllowed(permissions, 'D') && (
                   <Tooltip title='Delete' placement='top'>
-                    <IconButton size='small' onClick={() => handleConfirm(row)}>
+                    <IconButton color='error' size='small' onClick={() => handleConfirm(row)}>
                       <Icon icon='tabler:trash' />
                     </IconButton>
                   </Tooltip>
@@ -223,6 +227,7 @@ const FeatureType = () => {
     DESCRIPTION: data.PARAMETER_DESCRIPTION_3,
     HOTELS: getFlagLabel(data.PARAMETER_CODE_1),
     RENTAL: getFlagLabel(data.PARAMETER_CODE_2),
+    ROOMS: getFlagLabel(data.PARAMETER_CODE_5),
     ACTIVE: getActiveProps(data.ACTIVE).label
   }))
 
@@ -235,10 +240,8 @@ const FeatureType = () => {
             <DataGrid
               rowSelection={false}
               rows={dataList ?? []}
-              pageSize={states.pageSize}
               pageSizeOptions={[5, 10, 25]}
-              components={{ Toolbar: DataGridHeaderToolbar }}
-              onPageSizeChange={newPageSize => setStates({ ...states, pageSize: newPageSize })}
+              slots={{ toolbar: DataGridHeaderToolbar }}
               getRowHeight={() => 'auto'}
               initialState={{
                 pagination: {
@@ -247,7 +250,7 @@ const FeatureType = () => {
                   }
                 }
               }}
-              componentsProps={{
+              slotProps={{
                 baseButton: {
                   variant: 'outlined'
                 },
@@ -278,7 +281,6 @@ const FeatureType = () => {
               rowHeight={32}
               getRowId={row => row.ID}
               columns={updateColumns}
-              disableSelectionOnClick
             />
           </Card>
         </Grid>

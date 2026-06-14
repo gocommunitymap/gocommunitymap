@@ -20,9 +20,10 @@ import { useEffect, useState } from 'react'
 import {
   businessHotelsOptions,
   countryISO,
-  getGlobalParametersLOV,
+  getGlobalParametersGroupsLOV,
   getGlobalParametersLOV_W2P,
   getGlobalParametersLOV_W4P,
+  getOptionsByTypeCode,
   getPostCode,
   GLOBAL_PARAMETER_TYPES,
   PROPERTY_MAIN_TYPES
@@ -70,13 +71,22 @@ export const ModalForm = ({
 
   const [mapParams, setMapParams] = useState({})
 
-  const setSiteStatus = async () => {
-    const data = await getGlobalParametersLOV('SITESTS')
+  const loadGlobalParameterOptions = async () => {
+    const globalParametersLOVData = await getGlobalParametersGroupsLOV(
+      `${GLOBAL_PARAMETER_TYPES.SITE_STATUS},${GLOBAL_PARAMETER_TYPES.FLOORS},${GLOBAL_PARAMETER_TYPES.UNITS},${GLOBAL_PARAMETER_TYPES.CONTENT_TYPE},${GLOBAL_PARAMETER_TYPES.PRICE_MODIFIER}`
+    )
 
-    //Bind Site Status List
-    if (data?.length > 0) {
-      setSiteStatusOptions(data)
-    }
+    const siteStatuses = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.SITE_STATUS)
+    const floors = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.FLOORS)
+    const units = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.UNITS)
+    const contentTypes = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.CONTENT_TYPE)
+    const priceModifiers = getOptionsByTypeCode(globalParametersLOVData, GLOBAL_PARAMETER_TYPES.PRICE_MODIFIER)
+
+    if (siteStatuses?.length > 0) setSiteStatusOptions(siteStatuses)
+    if (floors?.length > 0) setFloorsOptions(floors)
+    if (units?.length > 0) setUnitsOptions(units)
+    if (contentTypes?.length > 0) setContentTypeOptions(contentTypes)
+    if (priceModifiers?.length > 0) setPriceModifierOptions(priceModifiers)
   }
 
   const setListingStatus = async () => {
@@ -97,50 +107,10 @@ export const ModalForm = ({
     }
   }
 
-  const setFloors = async () => {
-    const data = await getGlobalParametersLOV('FLOORS')
-
-    //Bind Floors List
-    if (data?.length > 0) {
-      setFloorsOptions(data)
-    }
-  }
-
-  const setUnits = async () => {
-    const data = await getGlobalParametersLOV('UNITS')
-
-    //Bind Units List
-    if (data?.length > 0) {
-      setUnitsOptions(data)
-    }
-  }
-
-  const setContentType = async () => {
-    const data = await getGlobalParametersLOV('CONTTYPE')
-
-    //Bind Units List
-    if (data?.length > 0) {
-      setContentTypeOptions(data)
-    }
-  }
-
-  const setPriceModifier = async () => {
-    const data = await getGlobalParametersLOV('PRICEMDFR')
-
-    //Bind Price Modifier List
-    if (data?.length > 0) {
-      setPriceModifierOptions(data)
-    }
-  }
-
   const initialized = async () => {
-    setSiteStatus()
+    loadGlobalParameterOptions()
     setListingStatus()
     setPropertyType()
-    setPriceModifier()
-    setFloors()
-    setUnits()
-    setContentType()
     setMapParams({
       LATITUDE: parseFloat(watch('LATITUDE')),
       LONGITUDE: parseFloat(watch('LONGITUDE')),
@@ -424,13 +394,7 @@ export const ModalForm = ({
                                 name='PLACE'
                                 control={control}
                                 render={({ field: { value, onChange } }) => (
-                                  <GAutocomplete
-                                    options={{
-                                      componentRestrictions: { country: countryISO }
-                                    }}
-                                    onPlaceChanged={onPlaceChanged}
-                                    onLoad={onLoad}
-                                  >
+                                  <GAutocomplete onPlaceChanged={onPlaceChanged} onLoad={onLoad}>
                                     <TextField
                                       id='icons-start-adornment'
                                       size='medium'

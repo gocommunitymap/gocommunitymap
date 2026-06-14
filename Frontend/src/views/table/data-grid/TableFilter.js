@@ -130,7 +130,7 @@ const columns = [
 const TableColumns = () => {
   // ** States
   const [data] = useState(rows)
-  const [pageSize, setPageSize] = useState(7)
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 7 })
   const [searchText, setSearchText] = useState('')
   const [filteredData, setFilteredData] = useState([])
 
@@ -157,12 +157,12 @@ const TableColumns = () => {
       <DataGrid
         autoHeight
         columns={columns}
-        pageSize={pageSize}
         pageSizeOptions={[7, 10, 25, 50]}
-        components={{ Toolbar: QuickSearchToolbar }}
+        slots={{ toolbar: QuickSearchToolbar }}
         rows={filteredData.length ? filteredData : data}
-        onPageSizeChange={newPageSize => setPageSize(newPageSize)}
-        componentsProps={{
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        slotProps={{
           baseButton: {
             variant: 'outlined'
           },

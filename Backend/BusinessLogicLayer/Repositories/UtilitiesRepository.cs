@@ -1,8 +1,8 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Models;
+using BusinessLogicLayer.Services;
 using DataAccessLayer.Data;
 using DataAccessLayer.Interface;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -16,14 +16,16 @@ namespace BusinessLogicLayer.Repositories
     public class UtilitiesRepository:IUtilitiesRepository
     {
         private readonly IDataAccess _db;
-        private readonly IConfiguration _configuration;
+        private readonly IAppSettingsService _appSettingsService;
+        private int? UserCode { get; set; }
         public static string? selectedDatabase = "";
 
-        public UtilitiesRepository(IDataAccess db, IConfiguration configuration)
+        public UtilitiesRepository(IDataAccess db, IAppSettingsService appSettingsService, IJwtExtractService jwtExtractService)
         {
             _db = db;
-            _configuration = configuration;
-            selectedDatabase = _configuration["database"];
+            _appSettingsService = appSettingsService;
+            UserCode = jwtExtractService.GetUserIdFromToken();
+            selectedDatabase = appSettingsService.GetDatabase();
         }
         public object GetUtilities(Utilities utilities)
         {
@@ -36,7 +38,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("UTILITIES", DbType.String, ParameterDirection.Input, utilities.UTILITIES);
                 dyParam.AddDynamicParams("UTILITY_TYPE_ID", DbType.Int32, ParameterDirection.Input, utilities.UTILITY_TYPE_ID);
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, utilities.ACTIVE);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, utilities.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.FETCH.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
@@ -58,7 +60,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("UTILITIES", DbType.String, ParameterDirection.Input, utilities.UTILITIES);
                 dyParam.AddDynamicParams("UTILITY_TYPE_ID", DbType.Int32, ParameterDirection.Input, utilities.UTILITY_TYPE_ID);
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, utilities.ACTIVE);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, utilities.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.INSERT.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
@@ -80,7 +82,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("UTILITIES", DbType.Int32, ParameterDirection.Input, utilities.UTILITIES);
                 dyParam.AddDynamicParams("UTILITY_TYPE_ID", DbType.Int32, ParameterDirection.Input, utilities.UTILITY_TYPE_ID);
                 dyParam.AddDynamicParams("ACTIVE", DbType.Boolean, ParameterDirection.Input, utilities.ACTIVE);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, utilities.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.UPDATE.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
@@ -99,7 +101,7 @@ namespace BusinessLogicLayer.Repositories
                 Parameters dyParam = new Parameters();
                 dyParam.SelectedDB = _db.SelectedDatabase;
                 dyParam.AddDynamicParams("UTILITY_ID", DbType.Int32, ParameterDirection.Input, utilities.UTILITY_ID);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, utilities.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.DELETE.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 

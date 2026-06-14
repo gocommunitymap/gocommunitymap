@@ -142,17 +142,17 @@ const User = () => {
           filterable: false,
           editable: false,
           disableColumnMenu: false,
-          flex: 1,
+
           minWidth: 100,
           align: 'right',
           headerAlign: 'right',
           headerName: 'Action',
           renderCell: ({ row }) => {
             return (
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'row' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'end', flexDirection: 'row' }}>
                 {isAllowed(permissions, 'U') && row.USER_CODE != user.usercode && row.ROLE_CODE !== user.roll_id && (
                   <Tooltip title='Edit' placement='top'>
-                    <IconButton size='small' onClick={() => handleEdit(row)}>
+                    <IconButton color='primary' size='small' onClick={() => handleEdit(row)}>
                       <Icon icon='tabler:edit' />
                     </IconButton>
                   </Tooltip>
@@ -193,9 +193,8 @@ const User = () => {
                 }
               }}
               pageSizeOptions={[5, 10, 25, 50]}
-              components={{ Toolbar: DataGridHeaderToolbar }}
-              onPageSizeChange={newPageSize => setStates({ ...states, pageSize: newPageSize })}
-              componentsProps={{
+              slots={{ toolbar: DataGridHeaderToolbar }}
+              slotProps={{
                 baseButton: {
                   variant: 'outlined'
                 },
@@ -226,7 +225,6 @@ const User = () => {
               rowHeight={32}
               getRowId={row => `${row.USER_CODE}`}
               columns={updateColumns}
-              disableSelectionOnClick
             />
           </Card>
         </Grid>

@@ -174,7 +174,7 @@ const EnhancedTableToolbar = props => {
       )}
       {numSelected > 0 ? (
         <Tooltip title='Delete'>
-          <IconButton sx={{ color: 'text.secondary' }}>
+          <IconButton color='error' sx={{ color: 'text.secondary' }}>
             <Icon icon='tabler:trash' />
           </IconButton>
         </Tooltip>

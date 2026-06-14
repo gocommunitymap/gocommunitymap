@@ -102,8 +102,9 @@ const SwiperControls2 = ({ direction, data, ACTIVE, PROPERTY_ID }) => {
                   position: 'relative'
                 }}
               >
+                {/* src={`${(row?.LINK || '').replace('.webp', '.jpg')}`} */}
                 <img
-                  src={`${(row?.LINK || '').replace('.webp', '.jpg')}`}
+                  src={`${row?.LINK || ''}`}
                   alt={`property-${index + 1}`}
                   style={{
                     height: '100%',
@@ -194,8 +195,9 @@ const SwiperControls2 = ({ direction, data, ACTIVE, PROPERTY_ID }) => {
                     transition: 'all .2s ease'
                   }}
                 >
+                  {/* src={`${(row?.LINK || '').replace('.webp', '.jpg')}`} */}
                   <img
-                    src={`${(row?.LINK || '').replace('.webp', '.jpg')}`}
+                    src={`${row?.LINK || ''}`}
                     alt={`property-thumb-${index + 1}`}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
@@ -234,10 +236,11 @@ const SwiperControls2 = ({ direction, data, ACTIVE, PROPERTY_ID }) => {
                   height: { xs: 280, sm: 380, md: 400 }
                 }}
               >
+                {/* src={`${(safeImages[dialogSlide]?.LINK || '').replace('.webp', '.jpg')}`} */}
                 <Box
                   key={`dialog-slide-${dialogSlide}`}
                   component='img'
-                  src={`${(safeImages[dialogSlide]?.LINK || '').replace('.webp', '.jpg')}`}
+                  src={`${safeImages[dialogSlide]?.LINK || ''}`}
                   alt={`all-photos-${dialogSlide + 1}`}
                   sx={{
                     width: '100%',
@@ -328,8 +331,9 @@ const SwiperControls2 = ({ direction, data, ACTIVE, PROPERTY_ID }) => {
                         transition: 'all .2s ease'
                       }}
                     >
+                      {/* src={`${(row?.LINK || '').replace('.webp', '.jpg')}`} */}
                       <img
-                        src={`${(row?.LINK || '').replace('.webp', '.jpg')}`}
+                        src={`${row?.LINK || ''}`}
                         alt={`all-photos-thumb-${index + 1}`}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />

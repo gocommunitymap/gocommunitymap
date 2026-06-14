@@ -3,8 +3,6 @@ import { Icon } from '@iconify/react'
 import { HOTEL_DEFAULT_FAQS } from 'src/@core/utils/constant'
 
 const PropertyFAQ = ({ faqs }) => {
-  console.log('faqs', faqs)
-
   const list = faqs ?? []
 
   return (

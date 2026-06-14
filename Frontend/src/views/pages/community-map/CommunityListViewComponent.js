@@ -1,149 +1,211 @@
-import { Box, Button, Card, CardContent, Chip, InputAdornment, Stack, TextField, Typography } from '@mui/material'
-import { useState } from 'react'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  InputAdornment,
+  Stack,
+  TextField,
+  Typography
+} from '@mui/material'
+import { useEffect, useState } from 'react'
 import IconifyIcon from 'src/@core/components/icon'
+import { toast } from 'react-hot-toast'
 
-import { defaultPageFont } from 'src/@core/utils'
+import {
+  getCommunitiesAPI,
+  getGlobalParametersAPI,
+  updateCommunityMemberAPI,
+  getCommunitiesMemberListAPI
+} from 'src/configs'
+import { defaultPageFont, GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
+import { useAuth } from 'src/hooks/useAuth'
+import LoginModal from 'src/layouts/components/horizontal/LoginModal'
+import { Modal } from 'src/views/components'
 
-const communities = [
-  {
-    id: 'japanese',
-    name: 'Japanese Community',
-    location: 'California, USA',
-    members: '250K+',
-    countryCode: 'JP',
-    flag: '🇯🇵',
-    image: '/images/banners/banner-1.jpg'
-  },
-  {
-    id: 'spanish',
-    name: 'Spanish Community',
-    location: 'New York, USA',
-    members: '500K+',
-    countryCode: 'ES',
-    flag: '🇪🇸',
-    image: '/images/banners/banner-2.jpg'
-  },
-  {
-    id: 'polish',
-    name: 'Polish Community',
-    location: 'Mexico City, Mexico',
-    members: '50K+',
-    countryCode: 'PL',
-    flag: '🇵🇱',
-    image: '/images/banners/banner-3.jpg'
-  },
-  {
-    id: 'english',
-    name: 'English Community',
-    location: 'London, UK',
-    members: '3M+',
-    countryCode: 'GB',
-    flag: '🇬🇧',
-    image: '/images/banners/banner-4.jpg'
-  },
-  {
-    id: 'brazilian',
-    name: 'Brazilian Community',
-    location: 'Vancouver, Canada',
-    members: '120K+',
-    countryCode: 'BR',
-    flag: '🇧🇷',
-    image: '/images/banners/banner-5.jpg'
-  },
-  {
-    id: 'korean',
-    name: 'Korean Community',
-    location: 'Toronto, Canada',
-    members: '200K+',
-    countryCode: 'KR',
-    flag: '🇰🇷',
-    image: '/images/banners/banner-6.jpg'
-  },
-  {
-    id: 'egyptian',
-    name: 'Egyptian Community',
-    location: 'New York, USA',
-    members: '90K+',
-    countryCode: 'EG',
-    flag: '🇪🇬',
-    image: '/images/banners/banner-7.jpg'
-  },
-  {
-    id: 'syrian',
-    name: 'Syrian Community',
-    location: 'California, USA',
-    members: '75K+',
-    countryCode: 'SY',
-    flag: '🇸🇾',
-    image: '/images/banners/banner-8.jpg'
-  },
-  {
-    id: 'argentine',
-    name: 'Argentine Community',
-    location: 'Austin, Texas, USA',
-    members: '45K+',
-    countryCode: 'AR',
-    flag: '🇦🇷',
-    image: '/images/banners/banner-9.jpg'
-  },
-  {
-    id: 'german',
-    name: 'German Community',
-    location: 'Mexico City, Mexico',
-    members: '60K+',
-    countryCode: 'DE',
-    flag: '🇩🇪',
-    image: '/images/banners/banner-10.jpg'
-  },
-  {
-    id: 'french',
-    name: 'French Community',
-    location: 'New York, USA',
-    members: '150K+',
-    countryCode: 'FR',
-    flag: '🇫🇷',
-    image: '/images/banners/banner-11.jpg'
-  },
-  {
-    id: 'indian',
-    name: 'Indian Community',
-    location: 'San Francisco, USA',
-    members: '300K+',
-    countryCode: 'IN',
-    flag: '🇮🇳',
-    image: '/images/banners/banner-12.jpg'
-  }
-]
+const DEFAULT_COMMUNITY_IMAGE = '/images/default/default-picture.png'
 
-const regions = ['All Regions', 'Asia', 'Europe', 'Americas', 'Africa', 'Oceania']
+const normalizeCommunity = row => ({
+  id: row?.COMMUNITY_ID ?? row?.id ?? row?.SECTION_ID ?? null,
+  name: row?.COMMUNITY_NAME ?? row?.name ?? row?.SECTION_TITLE ?? '',
+  location: row?.LOCATION ?? row?.location ?? row?.HEADING ?? '',
+  members: row?.MEMBERS ?? row?.members ?? row?.DESCRIPTION ?? '0',
+  countryCode: row?.COUNTRY_CODE ?? row?.countryCode ?? row?.MORE_BUTTON_LINK ?? '',
+  region: row?.REGION ?? row?.region ?? row?.MORE_BUTTON_TEXT ?? '',
+  image: row?.PICTURE_LINK ?? row?.image ?? DEFAULT_COMMUNITY_IMAGE,
+  isJoined: Boolean(row?.IS_JOINED ?? row?.IS_MEMBER ?? row?.JOINED)
+})
 
-// Map country codes to regions
-const countryToRegion = {
-  JP: 'Asia',
-  KR: 'Asia',
-  IN: 'Asia',
-  ES: 'Europe',
-  PL: 'Europe',
-  GB: 'Europe',
-  DE: 'Europe',
-  FR: 'Europe',
-  BR: 'Americas',
-  AR: 'Americas',
-  EG: 'Africa',
-  SY: 'Africa'
+const getCommunityIdFromRow = row => row?.COMMUNITY_ID ?? row?.SECTION_ID ?? row?.ID ?? row?.id ?? null
+
+const getApiRows = response => {
+  if (Array.isArray(response?.data)) return response.data
+  if (Array.isArray(response?.data?.data)) return response.data.data
+  if (Array.isArray(response)) return response
+
+  return []
 }
 
 const CommunityListViewComponent = () => {
+  const { user } = useAuth()
+  const [communities, setCommunities] = useState([])
+  const [regions, setRegions] = useState(['All Regions'])
+  const [isLoading, setIsLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRegion, setSelectedRegion] = useState('All Regions')
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [pendingAction, setPendingAction] = useState(null)
+
+  const [confirmState, setConfirmState] = useState({
+    isOpen: false,
+    isSubmit: false,
+    communityId: null,
+    communityName: '',
+    action: 'join'
+  })
+
+  useEffect(() => {
+    let isMounted = true
+
+    setIsLoading(true)
+    Promise.all([
+      getCommunitiesAPI({ ACTIVE: true }),
+      getGlobalParametersAPI({ TYPE_CODE: GLOBAL_PARAMETER_TYPES.POPULAR_REGION, ACTIVE: true }),
+      user?.usercode ? getCommunitiesMemberListAPI({ ACTIVE: true }) : Promise.resolve([])
+    ])
+      .then(([communitiesResponse, regionsResponse, membersResponse]) => {
+        if (!isMounted) return
+
+        const apiRows = getApiRows(communitiesResponse)
+        const regionRows = getApiRows(regionsResponse)
+        const memberRows = getApiRows(membersResponse)
+
+        const activeMemberCommunityIds = new Set(
+          memberRows
+            .filter(item => (item?.ACTIVE ?? item?.active ?? true) === true)
+            .map(item => getCommunityIdFromRow(item))
+            .filter(Boolean)
+        )
+
+        const regionOptions = Array.from(
+          new Set(
+            regionRows
+              .filter(item => item?.ACTIVE !== false)
+              .map(item => item?.PARAMETER_DESCRIPTION_3)
+              .filter(Boolean)
+          )
+        )
+
+        setCommunities(
+          apiRows.map(row => {
+            const community = normalizeCommunity(row)
+
+            return {
+              ...community,
+              isJoined: activeMemberCommunityIds.has(community.id) || community.isJoined
+            }
+          })
+        )
+        setRegions(['All Regions', ...regionOptions])
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.usercode])
+
+  useEffect(() => {
+    if (!regions.includes(selectedRegion)) {
+      setSelectedRegion('All Regions')
+    }
+  }, [regions, selectedRegion])
+
+  useEffect(() => {
+    if (!user?.usercode || !pendingAction) return
+
+    setShowLoginModal(false)
+    setConfirmState({
+      isOpen: true,
+      isSubmit: false,
+      communityId: pendingAction.communityId,
+      communityName: pendingAction.communityName,
+      action: pendingAction.action
+    })
+    setPendingAction(null)
+  }, [user?.usercode, pendingAction])
+
+  const handleJoinLeaveClick = community => {
+    const action = community.isJoined ? 'leave' : 'join'
+
+    if (!user?.usercode) {
+      setPendingAction({
+        communityId: community.id,
+        communityName: community.name,
+        action
+      })
+      setShowLoginModal(true)
+
+      return
+    }
+
+    setConfirmState({
+      isOpen: true,
+      isSubmit: false,
+      communityId: community.id,
+      communityName: community.name,
+      action
+    })
+  }
+
+  const handleConfirmMembership = () => {
+    if (!confirmState.communityId) return
+    const nextActive = confirmState.action === 'join'
+
+    setConfirmState(prev => ({ ...prev, isSubmit: true }))
+
+    updateCommunityMemberAPI({ COMMUNITY_ID: confirmState.communityId, ACTIVE: nextActive })
+      .then(response => {
+        if (response === false || response === undefined) return
+
+        setCommunities(prev =>
+          prev.map(item =>
+            item.id === confirmState.communityId
+              ? {
+                  ...item,
+                  isJoined: nextActive
+                }
+              : item
+          )
+        )
+
+        toast.success(confirmState.action === 'join' ? 'Community joined successfully' : 'Community left successfully')
+
+        setConfirmState({
+          isOpen: false,
+          isSubmit: false,
+          communityId: null,
+          communityName: '',
+          action: 'join'
+        })
+      })
+      .finally(() => {
+        setConfirmState(prev => ({ ...prev, isSubmit: false }))
+      })
+  }
 
   const filteredCommunities = communities.filter(community => {
-    const matchesSearch =
-      community.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      community.location.toLowerCase().includes(searchQuery.toLowerCase())
+    const communityName = String(community.name || '').toLowerCase()
+    const communityLocation = String(community.location || '').toLowerCase()
+    const query = String(searchQuery || '').toLowerCase()
 
-    // Filter by region
-    const matchesRegion = selectedRegion === 'All Regions' || countryToRegion[community.countryCode] === selectedRegion
+    const matchesSearch = communityName.includes(query) || communityLocation.includes(query)
+
+    const matchesRegion = selectedRegion === 'All Regions' || community.region === selectedRegion
 
     return matchesSearch && matchesRegion
   })
@@ -259,7 +321,7 @@ const CommunityListViewComponent = () => {
       >
         {filteredCommunities.map((community, index) => (
           <Card
-            key={community.id}
+            key={community.id ?? `${community.name}-${index}`}
             sx={{
               width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.333% - 16px)' },
               maxWidth: { xs: '100%', sm: 400, md: 380 },
@@ -283,7 +345,7 @@ const CommunityListViewComponent = () => {
               sx={{
                 position: 'relative',
                 height: 180,
-                backgroundImage: `url(${community.image})`,
+                backgroundImage: `url(${community.image || DEFAULT_COMMUNITY_IMAGE})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 bgcolor: '#e0e7ed'
@@ -359,8 +421,9 @@ const CommunityListViewComponent = () => {
               <Button
                 fullWidth
                 variant='contained'
+                onClick={() => handleJoinLeaveClick(community)}
                 sx={{
-                  bgcolor: '#10B981',
+                  bgcolor: community.isJoined ? '#ef4444' : '#10B981',
                   color: 'white',
                   fontFamily: defaultPageFont,
                   fontWeight: 600,
@@ -370,20 +433,37 @@ const CommunityListViewComponent = () => {
                   textTransform: 'none',
                   boxShadow: 'none',
                   '&:hover': {
-                    bgcolor: '#059669',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                    bgcolor: community.isJoined ? '#dc2626' : '#059669',
+                    boxShadow: community.isJoined
+                      ? '0 4px 12px rgba(239, 68, 68, 0.3)'
+                      : '0 4px 12px rgba(16, 185, 129, 0.3)'
                   }
                 }}
               >
-                Join Community
+                {community.isJoined ? 'Left Community' : 'Join Community'}
               </Button>
             </CardContent>
           </Card>
         ))}
       </Box>
 
+      {/* Loading */}
+      {isLoading && (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography
+            sx={{
+              fontSize: '1.2rem',
+              color: '#6f7f98',
+              fontFamily: defaultPageFont
+            }}
+          >
+            Loading communities...
+          </Typography>
+        </Box>
+      )}
+
       {/* No Results */}
-      {filteredCommunities.length === 0 && (
+      {!isLoading && filteredCommunities.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography
             sx={{
@@ -396,6 +476,64 @@ const CommunityListViewComponent = () => {
           </Typography>
         </Box>
       )}
+
+      <Modal
+        isOpen={confirmState.isOpen}
+        onClose={() =>
+          setConfirmState({ isOpen: false, isSubmit: false, communityId: null, communityName: '', action: 'join' })
+        }
+        title={confirmState.action === 'join' ? 'Join Community' : 'Leave Community'}
+      >
+        <Stack spacing={3}>
+          <Alert severity='warning'>
+            {confirmState.action === 'join'
+              ? 'Are you sure you want to join this community?'
+              : 'Are you sure you want to leave this community?'}
+          </Alert>
+
+          <Typography sx={{ textAlign: 'center', color: '#0b1730', fontFamily: defaultPageFont, fontWeight: 700 }}>
+            {confirmState.communityName}
+          </Typography>
+
+          <Stack direction='row' spacing={2} justifyContent='center'>
+            <Button
+              variant='contained'
+              color={confirmState.action === 'join' ? 'success' : 'error'}
+              disabled={confirmState.isSubmit}
+              onClick={handleConfirmMembership}
+            >
+              Yes
+            </Button>
+            <Button
+              variant='outlined'
+              color='secondary'
+              disabled={confirmState.isSubmit}
+              onClick={() =>
+                setConfirmState({
+                  isOpen: false,
+                  isSubmit: false,
+                  communityId: null,
+                  communityName: '',
+                  action: 'join'
+                })
+              }
+            >
+              No
+            </Button>
+          </Stack>
+        </Stack>
+      </Modal>
+      <div style={{ display: 'none' }}>
+        <LoginModal
+          isDirectOpen={showLoginModal}
+          callBack={() => {
+            setShowLoginModal(false)
+            if (!user?.usercode) {
+              setPendingAction(null)
+            }
+          }}
+        />
+      </div>
     </>
   )
 }

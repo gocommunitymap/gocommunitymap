@@ -6,13 +6,14 @@ import {
   deletePropertySetupHotelsAPI,
   fileUpload,
   updateFileAPI,
-  deleteFileAPI
+  deleteFileAPI,
+  getPropertySetupHotelsSetupListAPI
 } from 'src/configs'
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { FILE_DIRECTORIES, fetCurrentFullTime } from 'src/@core/utils'
 
 export const getPropertySetupHotels = createAsyncThunk(API_URL.GET_PROPERTY_SETUP, async data => {
-  const response = await getPropertySetupHotelsAPI(data)
+  const response = await getPropertySetupHotelsSetupListAPI(data)
 
   return response?.data
 })

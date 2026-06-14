@@ -2,7 +2,7 @@ import { Grid, Container, Tab } from '@mui/material'
 import { Icon } from '@iconify/react'
 import SeoHead from 'src/components/SeoHead'
 import { useRouter } from 'next/router'
-import { API_URL, getGlobalParametersAPI } from 'src/configs'
+import { API_URL, getGlobalParametersAPI, getGlobalParametersGuestAPI, getHotelBookingCalendarAPI } from 'src/configs'
 import { serverGet, serverGetRaw } from 'src/configs/services/serverHttp'
 import { NoRecordCard } from 'src/views/components'
 import BreadCrumbs from 'src/views/components/breadcrumbs'
@@ -32,12 +32,9 @@ import { Box } from '@mui/system'
 import addDays from 'date-fns/addDays'
 import format from 'date-fns/format'
 import differenceInCalendarDays from 'date-fns/differenceInCalendarDays'
+import { getGlobalParametersLOV, GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
 
-const linkList = [
-  { title: 'Home', link: '/home' },
-  { title: 'Hotels', link: '/hotels' },
-  { title: 'Properties', link: '/hotels/properties' }
-]
+const linkList = [{ title: 'Home', link: '/home' }]
 const pageTitle = 'Detail'
 
 const parsePropertyPayload = payload => {
@@ -110,12 +107,18 @@ export const getServerSideProps = async context => {
   const fallbackId = Array.isArray(queryId) ? queryId[0] : queryId
   const PROPERTY_ID = routeId || fallbackId
 
-  if (!PROPERTY_ID) return { notFound: true }
+  if (!PROPERTY_ID) return { props: { property: null, propertyId: PROPERTY_ID, rooms: null } }
 
   const [property, rooms] = await Promise.all([fetchPropertyById(PROPERTY_ID), fetchRoomsByPropertyId(PROPERTY_ID)])
-  if (!property) return { notFound: true }
+  if (!property) return { props: { property: null, propertyId: PROPERTY_ID, rooms: null } }
 
-  return { props: { property, propertyId: PROPERTY_ID, rooms } }
+  const _rooms = rooms.map(room => ({
+    ...room,
+    isAvailable: true,
+    AVAILABLE_QUANTITY: Number(room.ROOMS_QUANTITY) || 0
+  }))
+
+  return { props: { property, propertyId: PROPERTY_ID, rooms: _rooms } }
 }
 
 const faqs = []
@@ -136,24 +139,27 @@ const PropertyDetail = params => {
   const { property, propertyId, rooms = [] } = params
 
   const router = useRouter()
+
+  const [roomsData, setRoomsData] = useState(rooms || [])
+  const { CHECK_IN = null, CHECK_OUT = null, ADULTS = 0, CHILDREN = 0, ROOMS = 0, PETS_ALLOWED = false } = router.query
   const resolvedPropertyId = property?.PROPERTY_ID || propertyId || null
   const seoTitle = property?.PROPERTY_TITLE || 'Property Hotels'
   const [activeTab, setActiveTab] = useState('1')
 
   // ── Shared booking state ──────────────────────────────────
-  const [startDate, setStartDate] = useState(addDays(new Date(), 1))
-  const [endDate, setEndDate] = useState(addDays(new Date(), 4))
-  const [adults, setAdults] = useState(2)
-  const [childCount, setChildCount] = useState(0)
-  const [roomCount, setRoomCount] = useState(1)
+  const [startDate, setStartDate] = useState(CHECK_IN ? new Date(CHECK_IN) : addDays(new Date(), 1))
+  const [endDate, setEndDate] = useState(CHECK_OUT ? new Date(CHECK_OUT) : addDays(new Date(), 2))
+  const [adults, setAdults] = useState(Number(ADULTS) || 1)
+  const [childCount, setChildCount] = useState(Number(CHILDREN) || 0)
+  const [roomCount, setRoomCount] = useState(Number(ROOMS) || 1)
   const [selectedRooms, setSelectedRooms] = useState([]) // selected rooms from table
   const [appsetParams, setAppsetParams] = useState([])
+  const [bookingCalendar, setBookingCalendar] = useState([])
+  const [updatedRooms, setUpdatedRooms] = useState(roomsData)
 
-  useEffect(() => {
-    getGlobalParametersAPI({ TYPE_CODE: 'APPSET' })
-      .then(res => setAppsetParams(res?.data || []))
-      .catch(() => {})
-  }, [])
+  const [priceMap, setPriceMap] = useState({
+    [format(new Date(), 'yyyy-MM-dd')]: '0'
+  })
 
   const handleSearchChange = changes => {
     if ('startDate' in changes) setStartDate(changes.startDate)
@@ -161,7 +167,127 @@ const PropertyDetail = params => {
     if ('adults' in changes) setAdults(changes.adults)
     if ('childCount' in changes) setChildCount(changes.childCount)
     if ('roomCount' in changes) setRoomCount(changes.roomCount)
+    if ('startDate' in changes || ('endDate' in changes && (startDate == null || endDate == null))) return
+
+    const resolvedStart = 'startDate' in changes ? changes.startDate : startDate
+    const resolvedEnd = 'endDate' in changes ? changes.endDate : endDate
+
+    // Wait until both dates are set before filtering
+    if (!resolvedStart || !resolvedEnd) return
+
+    const resolvedAdults = 'adults' in changes ? changes.adults : adults
+    const resolvedChildren = 'childCount' in changes ? changes.childCount : childCount
+    const resolvedRooms = 'roomCount' in changes ? changes.roomCount : roomCount
+
+    // Build a set of dates in the selected range [startDate, endDate)
+    const dateRange = []
+    let cursor = new Date(resolvedStart)
+    while (cursor < resolvedEnd) {
+      dateRange.push(format(cursor, 'yyyy-MM-dd'))
+      cursor = addDays(cursor, 1)
+    }
+
+    const updatedRooms = roomsData
+      .map(room => {
+        let updatedInfo = { ...room, isAvailable: true }
+
+        // 1. Check max guest capacity
+        if (room.MAX_GUESTS < resolvedAdults + resolvedChildren) {
+          updatedInfo.isAvailable = false
+        }
+
+        // 2. Check availability from bookingCalendar across every night in range
+        if (updatedInfo.isAvailable && bookingCalendar.length > 0) {
+          const hasUnavailableNight = dateRange.some(date => {
+            const entry = bookingCalendar.find(
+              item => item.ROOM_ID === room.ROOM_ID && format(new Date(item.DATE), 'yyyy-MM-dd') === date
+            )
+
+            // If no entry found, assume unavailable; if found, check balance vs room count
+            if (!entry) return false // no calendar entry = not blocked
+
+            return entry.BALANCE < resolvedRooms
+          })
+          if (hasUnavailableNight) updatedInfo.isAvailable = false
+        } else if (updatedInfo.isAvailable) {
+          // Fallback: use static AVAILABLE_QUANTITY if calendar not loaded yet
+          if (room.AVAILABLE_QUANTITY < resolvedRooms) {
+            updatedInfo.isAvailable = false
+          }
+        }
+
+        return updatedInfo
+      })
+      .filter(r => r.isAvailable)
+
+    // setRoomsData(updaterRooms)
+    setUpdatedRooms(updatedRooms)
+    setSelectedRooms(prev => prev.filter(r => updatedRooms.some(ur => ur.ROOM_ID === r.roomId)))
   }
+
+  const getBookingCalendar = async (from, to) => {
+    if (from && to) {
+      await getHotelBookingCalendarAPI({
+        CHECK_IN: format(from, 'yyyy-MM-dd'),
+        CHECK_OUT: format(to, 'yyyy-MM-dd'),
+        PROPERTY_ID: resolvedPropertyId
+      })
+        .then(res => {
+          const respData = res?.data || []
+
+          const newPriceMap = respData.reduce((acc, item) => {
+            const totalDays = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))
+
+            const PRICE = item.PRICE * totalDays
+
+            acc[format(new Date(item.DATE), 'yyyy-MM-dd')] =
+              PRICE > 0 ? (PRICE > 999 ? `${(PRICE / 1000).toString()}k` : PRICE.toString()) : '0'
+
+            return acc
+          }, {})
+          setBookingCalendar(prev => [...prev, ...respData])
+
+          setPriceMap(prev => ({
+            ...prev,
+            ...newPriceMap
+          }))
+        })
+        .catch(err => {
+          console.log('Error fetching booking calendar:', err)
+        })
+    } else {
+      setPriceMap({})
+    }
+  }
+
+  const updateAvailableRoomQuantity = () => {
+    if (!bookingCalendar || bookingCalendar.length === 0) return
+
+    const updateRooms = updatedRooms.map(room => {
+      const balance =
+        bookingCalendar.find(
+          item =>
+            item.ROOM_ID === room.ROOM_ID &&
+            format(new Date(item.DATE), 'yyyy-MM-dd') === format(startDate, 'yyyy-MM-dd')
+        )?.BALANCE || 0
+      const AVAILABLE_QUANTITY = balance
+
+      return { ...room, AVAILABLE_QUANTITY }
+    })
+
+    setUpdatedRooms(updateRooms)
+  }
+
+  useEffect(() => {
+    const from = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), 1) : null
+    const to = endDate ? new Date(endDate.getFullYear(), endDate.getMonth() + 2, 0) : null
+
+    getBookingCalendar(from, to)
+  }, [startDate, endDate, resolvedPropertyId])
+
+  useEffect(() => {
+    updateAvailableRoomQuantity()
+  }, [bookingCalendar])
 
   const handleRoomSelect = (room, quantity) => {
     if (!room) return
@@ -175,6 +301,18 @@ const PropertyDetail = params => {
     })
   }
 
+  const buildRoomDetailsEntry = (roomData, quantity = 1) => ({
+    roomId: roomData?.ROOM_ID || null,
+    name: roomData?.ROOM_TYPE_DESC || roomData?.SUMMARY || 'Room',
+    roomType: roomData?.ROOM_TYPE_DESC || roomData?.SUMMARY || 'Room',
+    summary: roomData?.SUMMARY || '',
+    price: Number(roomData?.PRICE) || 0,
+    qty: Number(quantity) || 1,
+    maxGuests: Number(roomData?.MAX_GUESTS) || 0,
+    mealPlan: roomData?.MEAL_PLAN || null,
+    cancellationPolicy: roomData?.CANCELLATION_POLICY || null
+  })
+
   const handleBeginBooking = directRoom => {
     const nights = startDate && endDate ? Math.max(1, differenceInCalendarDays(endDate, startDate)) : 1
 
@@ -184,16 +322,10 @@ const PropertyDetail = params => {
     if (directRoom) {
       const qty = selectedRooms.find(r => r.roomId === directRoom.ROOM_ID)?.quantity || 1
       subtotal = (Number(directRoom.PRICE) || 0) * nights * qty
-      roomsParam = JSON.stringify([{ name: directRoom.ROOM_TYPE_DESC, price: directRoom.PRICE, qty }])
+      roomsParam = JSON.stringify([buildRoomDetailsEntry(directRoom, qty)])
     } else if (selectedRooms.length > 0) {
       subtotal = selectedRooms.reduce((sum, s) => sum + (Number(s.room?.PRICE) || 0) * s.quantity * nights, 0)
-      roomsParam = JSON.stringify(
-        selectedRooms.map(s => ({
-          name: s.room?.ROOM_TYPE_DESC,
-          price: s.room?.PRICE,
-          qty: s.quantity
-        }))
-      )
+      roomsParam = JSON.stringify(selectedRooms.map(s => buildRoomDetailsEntry(s.room, s.quantity)))
     } else {
       subtotal = (Number(property?.PRICE) || 0) * nights
       roomsParam = '[]'
@@ -214,6 +346,8 @@ const PropertyDetail = params => {
       propertyName: property?.PROPERTY_TITLE || property?.PROPERTY_NUM_NAME || '',
       propertyImage: getFirstPicture(property?.PICTURE_LINKS),
       place: property?.PLACE || '',
+      checkInTime: property?.CHECK_IN_TIMESLOT_DESC || '',
+      checkOutTime: property?.CHECK_OUT_TIMESLOT_DESC || '',
       pricePerNight: String(pricePerNight),
       checkIn: startDate ? format(startDate, 'yyyy-MM-dd') : '',
       checkOut: endDate ? format(endDate, 'yyyy-MM-dd') : '',
@@ -244,7 +378,7 @@ const PropertyDetail = params => {
       content: data => (
         <Overview
           data={data}
-          rooms={rooms}
+          rooms={updatedRooms}
           startDate={startDate}
           endDate={endDate}
           adults={adults}
@@ -253,6 +387,13 @@ const PropertyDetail = params => {
           onSearchChange={handleSearchChange}
           onRoomSelect={handleRoomSelect}
           onReserve={handleBeginBooking}
+          priceMap={priceMap}
+          setPriceMap={setPriceMap}
+          updatedRooms={updatedRooms}
+          setUpdatedRooms={setUpdatedRooms}
+          bookingCalendar={bookingCalendar}
+          setBookingCalendar={setBookingCalendar}
+          getBookingCalendar={getBookingCalendar}
         />
       )
     },
@@ -262,7 +403,7 @@ const PropertyDetail = params => {
       content: data => (
         <OptionAndPrice
           data={data}
-          rooms={rooms}
+          rooms={updatedRooms}
           searchParams={sharedSearchParams}
           onRoomSelect={handleRoomSelect}
           onReserve={handleBeginBooking}
@@ -307,7 +448,7 @@ const PropertyDetail = params => {
     <Container maxWidth='lg'>
       <SeoHead
         title={seoTitle}
-        description={property?.SUMMARY ? property.SUMMARY.substring(0, 155) : 'View full details of this property.'}
+        description={property?.SUMMARY ? property?.SUMMARY.substring(0, 155) : 'View full details of this property.'}
         ogImage={property?.PICTURE_LINK}
         ogType='article'
         canonical={`https://gocommunitymap.com/hotels/properties/${resolvedPropertyId || ''}`}
@@ -316,11 +457,11 @@ const PropertyDetail = params => {
       {/* Breadcrumbs */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
-          <BreadCrumbs list={linkList} title={pageTitle} />
+          <BreadCrumbs list={linkList} title={property?.PROPERTY_NUM_NAME || ''} />
         </Grid>
       </Grid>
 
-      {property ? (
+      {property && property !== null && property !== undefined ? (
         <>
           {/* Main Content Grid */}
           <Grid container spacing={4}>
@@ -385,12 +526,15 @@ const PropertyDetail = params => {
                 onSearchChange={handleSearchChange}
                 selectedRooms={selectedRooms}
                 onBeginBooking={handleBeginBooking}
+                bookingCalendar={bookingCalendar}
+                priceMap={priceMap}
+                getBookingCalendar={getBookingCalendar}
               />
             </Grid>
           </Grid>
         </>
       ) : (
-        <NoRecordCard title='Property not found' subtitle='This property does not exist or is no longer available.' />
+        <NoRecordCard title='Hotel not found' subtitle='This hotel does not exist or is no longer available.' />
       )}
     </Container>
   )

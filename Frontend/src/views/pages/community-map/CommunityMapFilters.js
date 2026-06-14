@@ -1,36 +1,54 @@
-import React from 'react'
+import React, { forwardRef, useEffect, useState } from 'react'
 import { Box, Stack, Typography, Slider, MenuItem, Select, OutlinedInput, Chip, Card, TextField } from '@mui/material'
 import DatePicker from 'react-datepicker'
 import format from 'date-fns/format'
-import { forwardRef, useMemo } from 'react'
 import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
+import { getGlobalParametersLOV, GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
 
 const propertyTypes = [
   { label: 'Hotel', value: 'hotel' },
   { label: 'Rental', value: 'rental' }
 ]
 
-const amenitiesList = [
-  'wifi',
-  'parking',
-  'pool',
-  'gym',
-  'pets-allowed',
-  'kitchen',
-  'air-conditioning',
-  'washer',
-  'dryer'
-]
-
 const CustomInput = forwardRef((props, ref) => {
-  const startDate = props?.start !== null ? format(props.start, 'dd-MMM-yyyy') : null
-  const endDate = props?.end !== null ? ` - ${format(props.end, 'dd-MMM-yyyy')}` : null
-  const value = `${startDate !== null ? startDate : ''}${endDate !== null ? endDate : ''}`
+  const startDate = props.start ? format(props.start, 'dd-MMM-yyyy') : ''
+  const endDate = props.end ? ` - ${format(props.end, 'dd-MMM-yyyy')}` : ''
+  const value = `${startDate}${endDate}`
 
-  return <TextField size='small' fullWidth inputRef={ref} label={null} value={value} />
+  return (
+    <TextField
+      size='small'
+      fullWidth
+      inputRef={ref}
+      label={null}
+      value={value}
+      placeholder='Select date range'
+      InputProps={{ readOnly: true }}
+    />
+  )
 })
 
-const CommunityMapFilters = ({ filters, setFilters, minValue, maxValue }) => {
+const CommunityMapFilters = ({ filters, setFilters, minValue, maxValue, amenitiesData }) => {
+  const [amenitiesOptions, setAmenitiesOptions] = useState([])
+  const [amenitiesLoading, setAmenitiesLoading] = useState(true)
+
+  useEffect(() => {
+    let _amenities = []
+
+    amenitiesData?.map(data => {
+      data?.amenities?.forEach(feature => {
+        if (feature?.FEATURES && !_amenities.some(a => a.value === feature.FEATURES_ID)) {
+          _amenities.push({ label: feature.FEATURES, value: feature.FEATURES_ID })
+        }
+      })
+
+      return null
+    }, [])
+
+    setAmenitiesOptions(_amenities || [])
+    setAmenitiesLoading(false)
+  }, [amenitiesData])
+
   const handlePriceChange = (_, newValue) => {
     setFilters(prev => ({ ...prev, priceRange: newValue }))
   }
@@ -50,6 +68,7 @@ const CommunityMapFilters = ({ filters, setFilters, minValue, maxValue }) => {
     const [start, end] = dates
     setStartDate(start)
     setEndDate(end)
+    setFilters(prev => ({ ...prev, dates: [start || null, end || null] }))
   }
 
   return (
@@ -79,17 +98,24 @@ const CommunityMapFilters = ({ filters, setFilters, minValue, maxValue }) => {
           </Typography>
           <Select
             multiple
+            displayEmpty
             size='small'
             value={filters.propertyType || []}
             onChange={handleTypeChange}
-            input={<OutlinedInput placeholder='select property Type' />}
-            renderValue={selected => (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {selected.map(value => (
-                  <Chip key={value} label={propertyTypes.find(t => t.value === value)?.label || value} />
-                ))}
-              </Box>
-            )}
+            input={<OutlinedInput />}
+            renderValue={selected =>
+              selected.length === 0 ? (
+                <Typography variant='body2' color='text.disabled'>
+                  Select property type
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selected.map(value => (
+                    <Chip key={value} label={propertyTypes.find(t => t.value === value)?.label || value} />
+                  ))}
+                </Box>
+              )
+            }
             fullWidth
           >
             {propertyTypes.map(type => (
@@ -112,8 +138,11 @@ const CommunityMapFilters = ({ filters, setFilters, minValue, maxValue }) => {
               onChange={handleOnChangeRange}
               shouldCloseOnSelect={false}
               popperPlacement='bottom-start'
-              customInput={<CustomInput start={startDate} end={endDate} />}
-              dateFormat='MM/dd/yyyy'
+              popperProps={{ strategy: 'fixed' }}
+              customInput={
+                <TextField fullWidth placeholder='Select a date range' start={startDate} end={endDate} size='small' />
+              }
+              dateFormat='dd-MMM-yyyy'
               isClearable
             />
           </DatePickerWrapper>
@@ -124,22 +153,30 @@ const CommunityMapFilters = ({ filters, setFilters, minValue, maxValue }) => {
           </Typography>
           <Select
             multiple
+            displayEmpty
             size='small'
             value={filters.amenities || []}
             onChange={handleAmenitiesChange}
-            input={<OutlinedInput placeholder='select amenities' />}
-            renderValue={selected => (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {selected.map(value => (
-                  <Chip key={value} label={value} />
-                ))}
-              </Box>
-            )}
+            input={<OutlinedInput />}
+            renderValue={selected =>
+              selected.length === 0 ? (
+                <Typography variant='body2' color='text.disabled'>
+                  {amenitiesLoading ? 'Loading...' : 'Select amenities'}
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selected.map(val => (
+                    <Chip key={val} label={amenitiesOptions.find(a => a.value === val)?.label || val} />
+                  ))}
+                </Box>
+              )
+            }
             fullWidth
+            disabled={amenitiesLoading}
           >
-            {amenitiesList.map(a => (
-              <MenuItem key={a} value={a}>
-                {a}
+            {amenitiesOptions.map(a => (
+              <MenuItem key={a.value} value={a.value}>
+                {a.label}
               </MenuItem>
             ))}
           </Select>

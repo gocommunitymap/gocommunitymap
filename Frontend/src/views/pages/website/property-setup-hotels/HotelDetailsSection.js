@@ -366,7 +366,7 @@ const FaqsList = ({ PROPERTY_FAQS, setPROPERTY_FAQS }) => {
             label='Answer'
             multiline
             rows={2}
-            placeholder='e.g. Check-in is from 3:00 PM onwards.'
+            placeholder='e.g. Check-in starts at CHECK_IN_TIMESLOT_DESC and check-out is by CHECK_OUT_TIMESLOT_DESC.'
             value={item.ANSWER}
             onChange={e => handleChange(index, 'ANSWER', e.target.value)}
             InputProps={{ sx: { borderRadius: 1 } }}
@@ -415,13 +415,13 @@ const NearbyList = ({ NEARBY_PLACES, setNEARBY_PLACES, nearbyIconOptions }) => {
   }
 
   const addRow = () =>
-    setNEARBY_PLACES(prev => [...prev, { ICON_ID: Date.now(), NAME: '', DISTANCE: '', ICON: 'tabler:map-pin' }])
+    setNEARBY_PLACES(prev => [...prev, { ICON_ID: 0, NAME: '', DISTANCE: '', ICON: 'tabler:map-pin' }])
 
   const removeRow = index => {
     setNEARBY_PLACES(prev => {
       const filtered = prev.filter((_, i) => i !== index)
 
-      return filtered.length > 0 ? filtered : [{ ICON_ID: Date.now(), NAME: '', DISTANCE: '', ICON: 'tabler:map-pin' }]
+      return filtered.length > 0 ? filtered : [{ ICON_ID: 0, NAME: '', DISTANCE: '', ICON: 'tabler:map-pin' }]
     })
   }
 
@@ -588,7 +588,7 @@ const HotelDetailsSection = ({
   const [rulesLoading, setRulesLoading] = useState(false)
   useEffect(() => {
     getGlobalParametersLOV_Extended(GLOBAL_PARAMETER_TYPES.HOTEL_TYPE).then(d => setHotelTypeOptions(d || []))
-    getGlobalParametersLOV('TIMESLOT').then(d => setTimeOptions(d || []))
+    getGlobalParametersLOV(GLOBAL_PARAMETER_TYPES.TIME_SLOT).then(d => setTimeOptions(d || []))
     getGlobalParametersLOV_Extended(GLOBAL_PARAMETER_TYPES.NEARBY_ICON).then(d =>
       setNearbyIconOptions(d?.map(o => ({ label: o.label, value: o.extra || o.value })) || [])
     )
@@ -785,7 +785,7 @@ const HotelDetailsSection = ({
                 <FormControl fullWidth size='small'>
                   <InputLabel shrink>Check-in Time</InputLabel>
                   <Controller
-                    name='CHECK_IN_TIME'
+                    name='CHECK_IN_TIMESLOT_DESC'
                     control={control}
                     render={({ field }) => (
                       <Select
@@ -842,7 +842,7 @@ const HotelDetailsSection = ({
                 <FormControl fullWidth size='small'>
                   <InputLabel>Check-out Time</InputLabel>
                   <Controller
-                    name='CHECK_OUT_TIME'
+                    name='CHECK_OUT_TIMESLOT_DESC'
                     control={control}
                     render={({ field }) => (
                       <Select

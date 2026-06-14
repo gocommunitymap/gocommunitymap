@@ -40,7 +40,7 @@ const GuestBlankLayout = ({ children }) => {
           display: 'flex',
           flexDirection: 'column',
           mx: 'auto',
-          pt: { xs: 10, md: 11 },
+          pt: { xs: 10, md: 25 },
           pb: 2,
           minHeight: '100vh',
           overflowX: 'hidden',

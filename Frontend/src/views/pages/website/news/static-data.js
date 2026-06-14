@@ -75,7 +75,7 @@ export const columns = [
     minWidth: 130,
     headerName: 'DATE',
     field: 'NEWS_DATE',
-    valueGetter: ({ row }) => row.NEWS_DATE && new Date(row.NEWS_DATE),
+    valueGetter: ({ row }) => row?.NEWS_DATE && new Date(row.NEWS_DATE),
     renderCell: ({ row }) => dateConvert(row.NEWS_DATE)
   },
   { flex: 1, minWidth: 100, headerName: 'SORT ORDER', field: 'SORT_ORDER' },
@@ -84,16 +84,16 @@ export const columns = [
     minWidth: 130,
     headerName: 'ACTIVE FROM',
     field: 'ACTIVE_FROM',
-    valueGetter: ({ row }) => row.ACTIVE_FROM && new Date(row.ACTIVE_FROM),
-    renderCell: ({ row }) => dateConvert(row.ACTIVE_FROM)
+    valueGetter: ({ row }) => row?.ACTIVE_FROM && new Date(row.ACTIVE_FROM),
+    renderCell: ({ row }) => dateConvert(row?.ACTIVE_FROM)
   },
   {
     flex: 1,
     minWidth: 130,
     headerName: 'ACTIVE TO',
     field: 'ACTIVE_TO',
-    valueGetter: ({ row }) => row.ACTIVE_TO && new Date(row.ACTIVE_TO),
-    renderCell: ({ row }) => dateConvert(row.ACTIVE_TO)
+    valueGetter: ({ row }) => row?.ACTIVE_TO && new Date(row.ACTIVE_TO),
+    renderCell: ({ row }) => dateConvert(row?.ACTIVE_TO)
   },
   {
     flex: 1,
@@ -102,7 +102,7 @@ export const columns = [
     headerName: 'ACTIVE',
     field: 'ACTIVE',
     renderCell: ({ row }) => {
-      const activeProps = getActiveProps(row.ACTIVE)
+      const activeProps = getActiveProps(row?.ACTIVE)
 
       return (
         <Chip
@@ -123,7 +123,7 @@ export const columns = [
     headerName: 'CREATED DATE',
     field: 'CREATED_ON',
     type: 'date',
-    valueGetter: ({ row }) => row.CREATED_ON && new Date(row.CREATED_ON),
-    renderCell: ({ row }) => dateConvert(row.CREATED_ON)
+    valueGetter: ({ row }) => row?.CREATED_ON && new Date(row.CREATED_ON),
+    renderCell: ({ row }) => dateConvert(row?.CREATED_ON)
   }
 ]

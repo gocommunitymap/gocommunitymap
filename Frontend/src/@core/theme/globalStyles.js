@@ -65,6 +65,7 @@ const GlobalStyles = theme => {
         }
       }
     },
+    '.MuiLoadingButton-loadingIndicator': { color: '#ffffff94 !important' },
     '#nprogress': {
       pointerEvents: 'none',
       '& .bar': {

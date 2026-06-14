@@ -38,7 +38,7 @@ export const columns = [
     headerName: 'CREATED DATE',
     field: 'CREATED_ON',
     type: 'date',
-    valueGetter: ({ row }) => row.CREATED_ON && new Date(row.CREATED_ON),
+    valueGetter: ({ row }) => row?.CREATED_ON && new Date(row.CREATED_ON),
     renderCell: ({ row }) => dateConvert(row.CREATED_ON)
   }
 ]

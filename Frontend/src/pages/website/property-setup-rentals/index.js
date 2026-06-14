@@ -5,7 +5,7 @@ import { DataGrid } from '@mui/x-data-grid'
 import DataGridHeaderToolbar from 'src/views/table/data-grid/DataGridHeaderToolbar'
 import Icon from 'src/@core/components/icon'
 import { useForm } from 'react-hook-form'
-import { getPropertySetupRental, updatePropertySetupRental, deletePropertySetupRental } from 'src/store'
+import { getPropertySetupRental, deletePropertySetupRental } from 'src/store'
 import { toast } from 'react-hot-toast'
 import { columns } from 'src/views/pages/website/property-setup-rentals/static-data'
 import { dateConvert, getActiveProps, handleSearch, isAllowed } from 'src/@core/utils'
@@ -26,6 +26,8 @@ const PropertySetupRental = () => {
   const [states, setStates] = useState({
     pageSize: 5
   })
+
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
 
   const [searchStates, setSearchStates] = useState({ searchText: '', filteredData: [] })
   const [deleteStates, setDeleteStates] = useState({ PROPERTY_ID: null, PROPERTY_NUM_NAME: null })
@@ -50,6 +52,7 @@ const PropertySetupRental = () => {
     setStates({
       pageSize: 5
     })
+    setPaginationModel({ page: 0, pageSize: 5 })
     setSearchStates({ searchText: '', filteredData: [] })
   }
 
@@ -74,17 +77,18 @@ const PropertySetupRental = () => {
           filterable: false,
           editable: false,
           disableColumnMenu: false,
-          flex: 1,
+
           minWidth: 100,
           align: 'right',
           headerAlign: 'right',
           headerName: 'Action',
           renderCell: ({ row }) => {
             return (
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'row' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'end', flexDirection: 'row' }}>
                 {isAllowed(permissions, 'U') && (
                   <Tooltip title='Edit' placement='top'>
                     <IconButton
+                      color='primary'
                       size='small'
                       onClick={() => replace(`/website/property-setup-rentals/form?id=${row.PROPERTY_ID}`)}
                     >
@@ -94,7 +98,7 @@ const PropertySetupRental = () => {
                 )}
                 {isAllowed(permissions, 'D') && (
                   <Tooltip title='Delete' placement='top'>
-                    <IconButton size='small' onClick={() => handleConfirm(row)}>
+                    <IconButton color='error' size='small' onClick={() => handleConfirm(row)}>
                       <Icon icon='tabler:trash' />
                     </IconButton>
                   </Tooltip>
@@ -151,54 +155,47 @@ const PropertySetupRental = () => {
         <Grid item xs={12}>
           <Card>
             <CardHeader title={pageTitle} />
-            <DataGrid
-              rowSelection={false}
-              rows={dataList ?? []}
-              pageSize={states.pageSize}
-              pageSizeOptions={[5, 10, 25]}
-              components={{ Toolbar: DataGridHeaderToolbar }}
-              onPageSizeChange={newPageSize => setStates({ ...states, pageSize: newPageSize })}
-              getRowHeight={() => 'auto'}
-              initialState={{
-                pagination: {
-                  paginationModel: {
-                    pageSize: states.pageSize
+            <Box sx={{ width: '100%', overflowX: 'auto' }}>
+              <DataGrid
+                rowSelection={false}
+                rows={dataList ?? []}
+                pageSizeOptions={[5, 10, 25]}
+                show
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                paginationMode='client'
+                slots={{ toolbar: DataGridHeaderToolbar }}
+                rowHeight={40}
+                slotProps={{
+                  baseButton: {
+                    variant: 'contained'
+                  },
+                  toolbar: {
+                    onClick: () => replace('/website/property-setup-rentals/form'),
+                    onChange: event => handleSearch({ value: event.target.value, data: store?.data, setSearchStates }),
+                    onPrint: () =>
+                      print({
+                        title: pageTitle,
+                        data: exportDataList
+                      }),
+                    onPdf: () =>
+                      generatePDF({
+                        title: pageTitle,
+                        data: exportDataList
+                      }),
+                    onRefresh: handleRefresh,
+                    clearSearch: () => handleSearch({ value: '', data: store?.data, setSearchStates }),
+                    exportTitle: pageTitle,
+                    exportData: exportDataList,
+                    columns,
+                    value: searchStates.searchText,
+                    permissions: { C: isAllowed(permissions, 'C'), E: isAllowed(permissions, 'E') }
                   }
-                }
-              }}
-              componentsProps={{
-                baseButton: {
-                  variant: 'outlined'
-                },
-                toolbar: {
-                  onClick: () => replace('/website/property-setup-rentals/form'),
-                  onChange: event => handleSearch({ value: event.target.value, data: store?.data, setSearchStates }),
-                  onPrint: () =>
-                    print({
-                      title: pageTitle,
-                      data: exportDataList
-                    }),
-                  onPdf: () =>
-                    generatePDF({
-                      title: pageTitle,
-                      data: exportDataList
-                    }),
-                  onRefresh: handleRefresh,
-                  clearSearch: () => handleSearch({ value: '', data: store?.data, setSearchStates }),
-                  exportTitle: pageTitle,
-                  exportData: exportDataList,
-                  columns,
-                  value: searchStates.searchText,
-
-                  permissions: { C: isAllowed(permissions, 'C'), E: isAllowed(permissions, 'E') }
-                }
-              }}
-              autoHeight
-              rowHeight={32}
-              getRowId={row => `${row.PROPERTY_ID}`}
-              columns={updateColumns}
-              disableSelectionOnClick
-            />
+                }}
+                getRowId={row => `${row.PROPERTY_ID}`}
+                columns={updateColumns}
+              />
+            </Box>
           </Card>
         </Grid>
         {/* -----Modal----- */}

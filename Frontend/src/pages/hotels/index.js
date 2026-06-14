@@ -46,13 +46,13 @@ const Hotels = ({ sectionData, newsData, discoverSectionsData }) => {
           <BreadCrumbs list={linkList} title={pageTitle} />
         </Grid>
         <Grid item xs={12} sx={{ position: 'absolute', top: 130, left: 0, width: '100%' }}>
-          <SearchHotelsSectionCard
+          {/* <SearchHotelsSectionCard
             setFilterState={setFilterState}
             filterState={filterState}
             setIsFiltered={setIsFiltered}
             title='Properties hotels'
             subtitle='Search flats and houses hotels in the UK.'
-          />
+          /> */}
         </Grid>
         <Grid item xs={12} pb={3} mt={120}>
           <Container>

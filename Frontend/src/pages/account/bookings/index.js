@@ -22,6 +22,8 @@ import { Icon } from '@iconify/react'
 import { toast } from 'react-hot-toast'
 import { getBookingAPI, cancelBookingAPI } from 'src/configs/services/api-methods/guest'
 import SeoHead from 'src/components/SeoHead'
+import { dateConvert } from 'src/@core/utils'
+import themeConfig from 'src/configs/themeConfig'
 
 const pageTitle = 'My Bookings'
 
@@ -42,9 +44,47 @@ const formatDate = dateStr => {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+const resolveBookingListingType = booking => {
+  const numericCandidates = [
+    booking?.LISTING_TYPE_ID,
+    booking?.LISTING_TYPE,
+    booking?.PROPERTY_LISTING_TYPE_ID,
+    booking?.TYPE_ID
+  ]
+
+  for (const candidate of numericCandidates) {
+    const parsed = Number(candidate)
+    if (parsed === 2) return 2
+    if (parsed === 1) return 1
+  }
+
+  const displayType = Number(booking?.DISPLAY_TYPE)
+  if (displayType === 3) return 2
+  if (displayType === 2) return 1
+
+  const hintText = [
+    booking?.LISTING_TYPE_DESC,
+    booking?.LISTING_TYPE_NAME,
+    booking?.PROPERTY_TYPE_DESC,
+    booking?.CATEGORY
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (hintText.includes('rental')) return 2
+  if (hintText.includes('hotel')) return 1
+
+  return 1
+}
+
+const bookingRouteBase = booking => (resolveBookingListingType(booking) === 2 ? '/rentals/booking' : '/hotels/booking')
+
 const BookingCard = ({ booking, onView, onCancel }) => {
   const meta = statusMeta(booking.STATUS)
   const isCancelled = (booking.STATUS || '').toUpperCase() === 'CANCELLED'
+  const isRental = resolveBookingListingType(booking) === 2
+  const bookingLabel = booking.PROPERTY_NAME || (isRental ? 'Rental Booking' : 'Hotel Booking')
 
   return (
     <Card
@@ -71,9 +111,9 @@ const BookingCard = ({ booking, onView, onCancel }) => {
         }}
       >
         <Stack direction='row' spacing={1.5} alignItems='center'>
-          <Icon icon='tabler:building-hotel' style={{ fontSize: 20, color: '#fff' }} />
+          <Icon icon={isRental ? 'tabler:home' : 'tabler:building-hotel'} style={{ fontSize: 20, color: '#fff' }} />
           <Typography variant='subtitle2' fontWeight={700} color='#fff'>
-            {booking.PROPERTY_NAME || 'Hotel Booking'}
+            {bookingLabel}
           </Typography>
         </Stack>
         <Chip
@@ -101,7 +141,7 @@ const BookingCard = ({ booking, onView, onCancel }) => {
               Check-in
             </Typography>
             <Typography variant='body2' fontWeight={600}>
-              {formatDate(booking.CHECK_IN)}
+              {dateConvert(booking.CHECK_IN)}
             </Typography>
           </Grid>
           <Grid item xs={6} sm={3} md={2}>
@@ -109,7 +149,7 @@ const BookingCard = ({ booking, onView, onCancel }) => {
               Check-out
             </Typography>
             <Typography variant='body2' fontWeight={600}>
-              {formatDate(booking.CHECK_OUT)}
+              {dateConvert(booking.CHECK_OUT)}
             </Typography>
           </Grid>
 
@@ -142,7 +182,7 @@ const BookingCard = ({ booking, onView, onCancel }) => {
                   size='small'
                   variant='contained'
                   startIcon={<Icon icon='tabler:eye' />}
-                  onClick={() => onView(booking.BOOKING_NO)}
+                  onClick={() => onView(booking)}
                   sx={{
                     backgroundColor: isCancelled ? '#888' : '#27ae60',
                     '&:hover': { backgroundColor: isCancelled ? '#666' : '#229954' },
@@ -217,7 +257,10 @@ const MyBookings = () => {
 
   return (
     <>
-      <SeoHead title={`${pageTitle} – GoCommunityMap`} description='View and manage your hotel bookings.' />
+      <SeoHead
+        title={`${pageTitle} – ${themeConfig.templateName}`}
+        description='View and manage your property bookings.'
+      />
 
       <Grid container spacing={4}>
         <Grid item xs={12}>
@@ -229,11 +272,11 @@ const MyBookings = () => {
                 <Button
                   variant='contained'
                   size='small'
-                  startIcon={<Icon icon='tabler:building-hotel' />}
-                  onClick={() => router.push('/hotels')}
+                  startIcon={<Icon icon='tabler:search' />}
+                  onClick={() => router.push('/home')}
                   sx={{ backgroundColor: '#27ae60', '&:hover': { backgroundColor: '#229954' } }}
                 >
-                  Find Hotels
+                  Explore Properties
                 </Button>
               }
             />
@@ -287,15 +330,15 @@ const MyBookings = () => {
                 No bookings yet
               </Typography>
               <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
-                When you book a hotel, your reservations will appear here.
+                Your confirmed hotel and rental bookings will appear here.
               </Typography>
               <Button
                 variant='contained'
-                startIcon={<Icon icon='tabler:building-hotel' />}
-                onClick={() => router.push('/hotels')}
+                startIcon={<Icon icon='tabler:search' />}
+                onClick={() => router.push('/home')}
                 sx={{ backgroundColor: '#27ae60', '&:hover': { backgroundColor: '#229954' } }}
               >
-                Explore Hotels
+                Explore Properties
               </Button>
             </Card>
           </Grid>
@@ -318,7 +361,7 @@ const MyBookings = () => {
             <Grid item xs={12} key={b.BOOKING_NO || i}>
               <BookingCard
                 booking={b}
-                onView={ref => router.push(`/hotels/booking/${ref}`)}
+                onView={row => router.push(`${bookingRouteBase(row)}/${row.BOOKING_NO}`)}
                 onCancel={setCancelTarget}
               />
             </Grid>

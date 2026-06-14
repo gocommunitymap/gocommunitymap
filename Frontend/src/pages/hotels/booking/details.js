@@ -7,6 +7,7 @@ import {
   FormControl,
   FormControlLabel,
   Grid,
+  IconButton,
   InputAdornment,
   MenuItem,
   Radio,
@@ -21,15 +22,53 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import GuestBlankLayout from 'src/@core/layouts/GuestLayoutAppBar'
 import { useAuth } from 'src/hooks/useAuth'
+import LoginModal from 'src/layouts/components/horizontal/LoginModal'
 import SeoHead from 'src/components/SeoHead'
 import BookingStepperHeader from 'src/views/pages/hotels/booking/BookingStepperHeader'
 import BookingSummaryCard from 'src/views/pages/hotels/booking/BookingSummaryCard'
 
-import { arrivalTimeOptions, defaultPageFont, phonePrefixes } from 'src/@core/utils'
+import { arrivalTimeOptions, defaultPageFont, phonePrefixes, POPULAR_COUNTRIES } from 'src/@core/utils'
+import { registerUserAPI } from 'src/configs'
+import toast from 'react-hot-toast'
+import { LoadingButton } from '@mui/lab'
+import themeConfig from 'src/configs/themeConfig'
+
+const PasswordValidationRow = ({ label, passed }) => (
+  <Box display='flex' alignItems='center' gap={1} mt={0.75}>
+    <Box
+      sx={{
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: passed ? 'primary.main' : 'action.disabledBackground',
+        flexShrink: 0,
+        transition: 'background-color 0.2s'
+      }}
+    >
+      <Icon fontSize={11} icon={passed ? 'tabler:check' : 'tabler:minus'} color={passed ? 'white' : ''} />
+    </Box>
+    <Typography variant='caption' color={passed ? 'primary.main' : 'text.secondary'} sx={{ transition: 'color 0.2s' }}>
+      {label}
+    </Typography>
+  </Box>
+)
+
+const getPasswordStrength = validations => {
+  const passed = Object.values(validations).filter(v => !v).length
+  if (passed === 5) return { score: 100, label: 'Strong', color: 'primary.main' }
+  if (passed === 4) return { score: 80, label: 'Good', color: 'info.main' }
+  if (passed === 3) return { score: 60, label: 'Fair', color: 'warning.main' }
+  if (passed >= 1) return { score: 30, label: 'Weak', color: 'error.main' }
+
+  return { score: 0, label: '', color: 'divider' }
+}
 
 const HotelBookingDetails = () => {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, login } = useAuth()
   const q = router.query
 
   const pricePerNight = Number(q.pricePerNight) || 0
@@ -44,18 +83,31 @@ const HotelBookingDetails = () => {
   })()
 
   const rawSubtotal = Number(q.subtotal) || 0
+  const rawServiceFee = Number(q.serviceFee) || 0
+  const rawTotal = Number(q.total) || 0
 
   const roomsSubtotal =
-    selectedRooms.length > 0 ? selectedRooms.reduce((sum, s) => sum + (s.price || 0) * (s.qty || 1) * nights, 0) : 0
+    selectedRooms.length > 0
+      ? selectedRooms.reduce((sum, s) => sum + (Number(s.price) || 0) * (Number(s.qty) || 1) * nights, 0)
+      : 0
   const computedSubtotal = roomsSubtotal > 0 ? roomsSubtotal : rawSubtotal > 0 ? rawSubtotal : pricePerNight * nights
-  const computedServiceFee = Number(q.serviceFee) > 0 ? Number(q.serviceFee) : Math.round(computedSubtotal * 0.1)
-  const computedTotal = Number(q.total) > 0 ? Number(q.total) : computedSubtotal + computedServiceFee
+  const feeFromTotal = rawTotal > computedSubtotal ? rawTotal - computedSubtotal : 0
+
+  const computedServiceFee =
+    rawServiceFee > 0 ? rawServiceFee : feeFromTotal > 0 ? feeFromTotal : Math.round(computedSubtotal * 0.1)
+
+  const computedTotal =
+    rawTotal > 0 && (rawServiceFee > 0 || rawTotal > computedSubtotal)
+      ? rawTotal
+      : computedSubtotal + computedServiceFee
 
   const bookingData = {
     propertyId: q.propertyId || '',
     propertyName: q.propertyName || 'Hotel Property',
     propertyImage: q.propertyImage || '',
     place: q.place || '',
+    checkInTime: q.checkInTime || '',
+    checkOutTime: q.checkOutTime || '',
     pricePerNight,
     checkIn: q.checkIn || '',
     checkOut: q.checkOut || '',
@@ -72,51 +124,153 @@ const HotelBookingDetails = () => {
     firstName: '',
     lastName: '',
     email: '',
-    country: 'United States',
-    phonePrefix: '+1',
-    phone: '',
+    password: '',
+    isExistingUser: 'no',
+    country: POPULAR_COUNTRIES.find(c => c.default)?.value || '',
+    phone: '+',
     bookingFor: 'self',
     travelForWork: 'no',
     specialRequests: '',
     arrivalTime: ''
   })
-  const [rentCar, setRentCar] = useState(false)
-  const [bookTaxi, setBookTaxi] = useState(false)
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const [passwordValidations, setPasswordValidations] = useState({
+    lowercase: true,
+    uppercase: true,
+    number: true,
+    spacialCharacter: true,
+    length: true
+  })
+
+  const handlePasswordValidation = value => {
+    const lowerCaseLetters = /[a-z]/g
+    const upperCaseLetters = /[A-Z]/g
+    const numbers = /[0-9]/g
+    const spacialCharacters = /[ `!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/
+    setPasswordValidations({
+      lowercase: !value.match(lowerCaseLetters),
+      uppercase: !value.match(upperCaseLetters),
+      number: !value.match(numbers),
+      spacialCharacter: !value.match(spacialCharacters),
+      length: value.length < 8
+    })
+  }
 
   // Pre-fill with logged-in user data
   useEffect(() => {
     if (user) {
       setForm(prev => ({
         ...prev,
-        firstName: user?.firstName || user?.name?.split(' ')[0] || '',
-        lastName: user?.lastName || user?.name?.split(' ')[1] || '',
-        email: user?.email || ''
+        firstName: user?.fullName?.split(' ')[0] || user?.name?.split(' ')[0] || '',
+        lastName: user?.fullName?.split(' ')[1] || user?.name?.split(' ')[1] || '',
+        email: user?.email || '',
+        phone: user?.contactNo || ''
       }))
     }
   }, [user])
 
   const handleChange = field => e => setForm(prev => ({ ...prev, [field]: e.target.value }))
 
-  const handleSubmit = () => {
-    const params = new URLSearchParams({
-      ...Object.fromEntries(Object.entries(bookingData).map(([k, v]) => [k, String(v)])),
-      guestFirstName: form.firstName,
-      guestLastName: form.lastName,
-      guestEmail: form.email,
-      guestCountry: form.country,
-      guestPhone: `${form.phonePrefix}${form.phone}`,
-      bookingFor: form.bookingFor,
-      travelForWork: form.travelForWork,
-      specialRequests: form.specialRequests,
-      arrivalTime: form.arrivalTime,
-      selectedRooms: JSON.stringify(selectedRooms)
-    })
-    router.push(`/hotels/booking/payment?${params.toString()}`)
+  const handleSubmit = async () => {
+    setIsSubmitting(true)
+    let registeredSuccessfully = user ? true : false
+    let loginSuccessfully = false
+    if (!user) {
+      await registerUserAPI({
+        data: {
+          USER_CODE: null,
+          ROLE_CODE: null,
+          USER_NAME: form.firstName + ' ' + form.lastName,
+          EMAIL: form.email,
+          PASSWORD: form.password,
+          CONTACT_NO: form.phone,
+          STATUS: 1,
+          USER_TYPE: 4,
+          USER: 0
+        },
+        config: { toast: false, isGuest: true, returnErrorResponse: true }
+      })
+        .then(response => {
+          if (response !== false && response?.code !== -1) {
+            registeredSuccessfully = true
+            toast.success(
+              <Box textAlign='center'>
+                <Typography variant='h6' color='green'>
+                  Congratulations! You have successfully registered!
+                </Typography>
+                <Typography variant='subtitle2'>Now You Can Login with Your Email and Password!</Typography>
+              </Box>,
+              {
+                position: 'top-center',
+                duration: 10000,
+                style: { maxWidth: 500 }
+              }
+            )
+          } else {
+            toast.error('User already exists. Please select “Yes” for “Are you an existing user?”', {
+              position: 'top-center',
+              duration: 5000,
+              style: { border: 'solid red 1px' }
+            })
+            setTimeout(() => {
+              setShowLoginModal(true)
+              setForm(prev => ({ ...prev, isExistingUser: 'yes' }))
+            }, 2000)
+
+            setIsSubmitting(false)
+          }
+        })
+        .catch(err => {
+          toast.error(err?.response?.data?.error || 'Registration failed. Please try again.')
+          setIsSubmitting(false)
+        })
+    }
+    if (registeredSuccessfully) {
+      if (!user) {
+        await login({ username: form.email, password: form.password }, error => {
+          if (error?.response?.data?.error) {
+            toast.error(error.response.data.error, {
+              position: 'top-right',
+              duration: 5000,
+              style: { border: 'solid red 1px' }
+            })
+          }
+          setError('email', {
+            type: 'manual',
+            message: 'Email or Password is invalid'
+          })
+        })
+      }
+
+      setIsSubmitting(false)
+
+      const params = new URLSearchParams({
+        ...Object.fromEntries(Object.entries(bookingData).map(([k, v]) => [k, String(v)])),
+        guestFirstName: form.firstName,
+        guestLastName: form.lastName,
+        guestEmail: form.email,
+        guestCountry: form.country,
+        guestPhone: form.phone,
+        bookingFor: form.bookingFor,
+        travelForWork: form.travelForWork,
+        specialRequests: form.specialRequests,
+        arrivalTime: form.arrivalTime,
+        selectedRooms: JSON.stringify(selectedRooms)
+      })
+      router.push(`/hotels/booking/payment?${params.toString()}`)
+    }
   }
 
   return (
     <>
-      <SeoHead title='Your Details – GoCommunityMap' description='Complete your hotel booking details.' />
+      <SeoHead
+        title={`Your Details – ${themeConfig.templateName}`}
+        description='Complete your hotel booking details.'
+      />
       <BookingStepperHeader currentStep={2} />
 
       <Box sx={{ backgroundColor: '#f8fafc', minHeight: '100vh', pb: 8 }}>
@@ -270,6 +424,136 @@ const HotelBookingDetails = () => {
                 </Stack>
 
                 <Grid container spacing={2}>
+                  {!user && (
+                    <>
+                      <Grid item xs={12}>
+                        <Card sx={{ bgcolor: 'primary.light', p: 2, borderRadius: 2 }}>
+                          <Typography variant='caption' fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
+                            Are you an existing user?
+                          </Typography>
+                          <RadioGroup
+                            row
+                            value={form.isExistingUser}
+                            onChange={e => {
+                              handleChange('isExistingUser')(e)
+                              if (e.target.value === 'yes') setShowLoginModal(true)
+                            }}
+                          >
+                            <FormControlLabel
+                              value='yes'
+                              control={<Radio size='small' />}
+                              label={<Typography variant='body2'>Yes, I have an account</Typography>}
+                            />
+                            <FormControlLabel
+                              value='no'
+                              control={<Radio size='small' />}
+                              label={<Typography variant='body2'>No, I am new</Typography>}
+                            />
+                          </RadioGroup>
+                        </Card>
+                      </Grid>
+
+                      <LoginModal
+                        fullWidth
+                        isDirectOpen={showLoginModal}
+                        callBack={() => {
+                          setShowLoginModal(false)
+                        }}
+                      />
+
+                      {form.isExistingUser === 'no' && (
+                        <>
+                          <Grid item xs={12}>
+                            <Typography variant='caption' fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
+                              Password*
+                            </Typography>
+                            <TextField
+                              fullWidth
+                              size='small'
+                              type={showPassword ? 'text' : 'password'}
+                              value={form.password}
+                              onChange={e => {
+                                handleChange('password')(e)
+                                handlePasswordValidation(e.target.value)
+                              }}
+                              InputProps={{
+                                endAdornment: (
+                                  <InputAdornment position='end'>
+                                    <IconButton edge='end' size='small' onClick={() => setShowPassword(v => !v)}>
+                                      <Icon icon={showPassword ? 'mdi:eye-outline' : 'mdi:eye-off-outline'} />
+                                    </IconButton>
+                                  </InputAdornment>
+                                )
+                              }}
+                            />
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            {(() => {
+                              const strength = getPasswordStrength(passwordValidations)
+                              const hasInput = Object.values(passwordValidations).some(v => !v)
+                              if (!hasInput) return null
+
+                              return (
+                                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                                  <Box display='flex' justifyContent='space-between' alignItems='center' mb={1}>
+                                    <Typography variant='caption' color='text.secondary' fontWeight={500}>
+                                      Password strength
+                                    </Typography>
+                                    <Typography variant='caption' fontWeight={600} color={strength.color}>
+                                      {strength.label}
+                                    </Typography>
+                                  </Box>
+                                  <Box
+                                    sx={{
+                                      height: 6,
+                                      borderRadius: 3,
+                                      bgcolor: 'action.disabledBackground',
+                                      overflow: 'hidden',
+                                      mb: 1.5
+                                    }}
+                                  >
+                                    <Box
+                                      sx={{
+                                        height: '100%',
+                                        width: `${strength.score}%`,
+                                        borderRadius: 3,
+                                        bgcolor: strength.color,
+                                        transition: 'width 0.3s ease, background-color 0.3s ease'
+                                      }}
+                                    />
+                                  </Box>
+                                  <Grid container spacing={0}>
+                                    <Grid item xs={6}>
+                                      <PasswordValidationRow
+                                        label='Lowercase letter'
+                                        passed={!passwordValidations.lowercase}
+                                      />
+                                      <PasswordValidationRow
+                                        label='Uppercase letter'
+                                        passed={!passwordValidations.uppercase}
+                                      />
+                                      <PasswordValidationRow label='Number' passed={!passwordValidations.number} />
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                      <PasswordValidationRow
+                                        label='Special character'
+                                        passed={!passwordValidations.spacialCharacter}
+                                      />
+                                      <PasswordValidationRow
+                                        label='Minimum 8 characters'
+                                        passed={!passwordValidations.length}
+                                      />
+                                    </Grid>
+                                  </Grid>
+                                </Box>
+                              )
+                            })()}
+                          </Grid>
+                        </>
+                      )}
+                    </>
+                  )}
                   <Grid item xs={12} sm={6}>
                     <Typography variant='caption' fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
                       First Name*
@@ -298,43 +582,15 @@ const HotelBookingDetails = () => {
                       required
                     />
                   </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant='caption' fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
-                      Email address*
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      type='email'
-                      id='email'
-                      placeholder='john.doe@example.com'
-                      value={form.email}
-                      onChange={handleChange('email')}
-                      required
-                    />
-                    <Typography variant='caption' color='text.secondary' sx={{ mt: 0.5, display: 'block' }}>
-                      Confirmation email sent to this address
-                    </Typography>
-                  </Grid>
+
                   <Grid item xs={12}>
                     <Typography variant='caption' fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
                       Country/Region *
                     </Typography>
                     <Select fullWidth size='small' value={form.country} onChange={handleChange('country')}>
-                      {[
-                        'United States',
-                        'United Kingdom',
-                        'Canada',
-                        'Australia',
-                        'Japan',
-                        'Germany',
-                        'France',
-                        'India',
-                        'United Arab Emirates',
-                        'Singapore'
-                      ].map(c => (
-                        <MenuItem key={c} value={c}>
-                          {c}
+                      {POPULAR_COUNTRIES.map(c => (
+                        <MenuItem key={c.value} value={c.value}>
+                          {c.label}
                         </MenuItem>
                       ))}
                     </Select>
@@ -343,29 +599,19 @@ const HotelBookingDetails = () => {
                     <Typography variant='caption' fontWeight={600} sx={{ mb: 0.5, display: 'block' }}>
                       Phone number *
                     </Typography>
-                    <Stack direction='row' spacing={1}>
-                      <Select
-                        size='small'
-                        value={form.phonePrefix}
-                        onChange={handleChange('phonePrefix')}
-                        sx={{ minWidth: 100 }}
-                      >
-                        {phonePrefixes.map(p => (
-                          <MenuItem key={p.code} value={p.prefix}>
-                            {p.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      <TextField
-                        fullWidth
-                        size='small'
-                        placeholder='123.456.7890'
-                        value={form.phone}
-                        onChange={handleChange('phone')}
-                      />
-                    </Stack>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      placeholder='+12025550123'
+                      value={form.phone}
+                      onChange={e => {
+                        const digits = e.target.value.replace(/^\+/, '').replace(/\D/g, '').slice(0, 15)
+                        setForm(prev => ({ ...prev, phone: '+' + digits }))
+                      }}
+                      inputProps={{ maxLength: 16, inputMode: 'tel' }}
+                    />
                     <Typography variant='caption' color='text.secondary' sx={{ mt: 0.5, display: 'block' }}>
-                      Needed by the property to validate your booking
+                      Include country code, e.g. +1, +44, +92
                     </Typography>
                   </Grid>
                 </Grid>
@@ -439,7 +685,7 @@ const HotelBookingDetails = () => {
                 <Stack direction='row' spacing={1} alignItems='center' sx={{ mb: 0.5 }}>
                   <Icon icon='tabler:circle-check' style={{ color: '#27ae60', fontSize: 18 }} />
                   <Typography variant='body2' color='text.secondary' fontFamily={defaultPageFont}>
-                    Your room will be ready for check-in at 3:00 PM
+                    {`Your room will be ready for check-in at ${bookingData.checkInTime || '—'}`}
                   </Typography>
                 </Stack>
                 <Stack direction='row' spacing={1} alignItems='center' sx={{ mb: 2 }}>
@@ -471,7 +717,8 @@ const HotelBookingDetails = () => {
               </Card>
 
               {/* CTA */}
-              <Button
+              <LoadingButton
+                loading={isSubmitting}
                 fullWidth
                 variant='contained'
                 size='large'
@@ -488,7 +735,7 @@ const HotelBookingDetails = () => {
                 disabled={!form.firstName || !form.lastName || !form.email}
               >
                 Next: Final details →
-              </Button>
+              </LoadingButton>
             </Grid>
 
             {/* Right Column – Summary */}

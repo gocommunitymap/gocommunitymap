@@ -31,4 +31,3 @@ const CleaveWrapper = styled(Box)(({ theme }) => ({
 }))
 
 export default CleaveWrapper
-

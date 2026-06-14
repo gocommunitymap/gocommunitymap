@@ -21,6 +21,7 @@ import LoginModal from './LoginModal'
 
 const drawerWidth = 240
 import { defaultPageFont } from 'src/@core/utils'
+import themeConfig from 'src/configs/themeConfig'
 
 const landingNav = [
   { label: 'Discover', href: '/home' },
@@ -47,35 +48,39 @@ function GuestAppBar(props) {
         <Stack direction='row' spacing={1.2} alignItems='center'>
           <CompanyLogo width='36' />
           <Typography sx={{ color: '#0b1730', fontSize: '1.05rem', fontWeight: 800, fontFamily: defaultPageFont }}>
-            GoCommunityMap
+            {themeConfig.templateName}
           </Typography>
         </Stack>
       </Link>
       <List sx={{ p: 0 }}>
-        {landingNav.map(item => (
-          <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
-            <Button
-              onClick={handleDrawerToggle}
-              fullWidth
-              variant='text'
-              sx={{
-                justifyContent: 'flex-start',
-                mb: 1,
-                borderRadius: 2,
-                color: '#0b1730',
-                backgroundColor: 'transparent',
-                textTransform: 'none',
-                fontWeight: 700,
-                fontFamily: defaultPageFont,
-                '&:hover': {
-                  backgroundColor: 'rgba(17,185,129,0.08)'
-                }
-              }}
-            >
-              {item.label}
-            </Button>
-          </Link>
-        ))}
+        {landingNav.map(item => {
+          const active =
+            item?.href ===
+            (asPath?.lastIndexOf('/') == asPath?.length - 1 ? asPath.substring(0, asPath?.lastIndexOf('/')) : asPath)
+
+          return (
+            <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
+              <Button
+                onClick={handleDrawerToggle}
+                fullWidth
+                variant='text'
+                sx={{
+                  justifyContent: 'flex-start',
+                  mb: 1,
+                  borderRadius: 2,
+                  color: active ? 'white' : 'primary.main',
+                  bgcolor: active ? 'primary.main' : 'transparent',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontFamily: defaultPageFont,
+                  '& .MuiButton-text:hover': { bgcolor: 'primary.light' }
+                }}
+              >
+                {item.label}
+              </Button>
+            </Link>
+          )
+        })}
         {user?.usercode ? null : (
           <Box sx={{ mt: 1, mb: 1 }}>
             <LoginModal fullWidth />
@@ -135,29 +140,39 @@ function GuestAppBar(props) {
             <Stack direction='row' spacing={1.2} alignItems='center'>
               <CompanyLogo width='36' />
               <Typography sx={{ color: '#0b1730', fontSize: '1.6rem', fontWeight: 800, fontFamily: 'inter' }}>
-                GoCommunityMap
+                {themeConfig.templateName}
               </Typography>
             </Stack>
           </Link>
 
           <Stack direction='row' spacing={1} sx={{ display: { xs: 'none', md: 'flex' } }}>
-            {landingNav.map(item => (
-              <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
-                <Button
-                  variant='text'
-                  sx={{
-                    px: 1.5,
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontWeight: asPath === item.href ? 800 : 700,
-                    color: asPath === item.href ? '#0b1730' : '#5e6b82',
-                    fontFamily: defaultPageFont
-                  }}
-                >
-                  {item.label}
-                </Button>
-              </Link>
-            ))}
+            {landingNav.map(item => {
+              const active =
+                item?.href ===
+                (asPath?.lastIndexOf('/') == asPath?.length - 1
+                  ? asPath.substring(0, asPath?.lastIndexOf('/'))
+                  : asPath)
+
+              return (
+                <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
+                  <Button
+                    variant='text'
+                    sx={{
+                      px: 1.5,
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: active ? 800 : 700,
+                      color: active ? 'white' : 'primary.main',
+                      bgcolor: active ? 'primary.main' : 'transparent',
+                      fontFamily: defaultPageFont,
+                      '& .MuiButton-text:hover': { bgcolor: 'primary.light' }
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                </Link>
+              )
+            })}
           </Stack>
 
           <Stack direction='row' spacing={1.5} sx={{ display: { xs: 'none', md: 'flex' } }}>

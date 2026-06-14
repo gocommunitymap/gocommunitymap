@@ -1,8 +1,8 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Models;
+using BusinessLogicLayer.Services;
 using DataAccessLayer.Data;
 using DataAccessLayer.Interface;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -16,13 +16,15 @@ namespace BusinessLogicLayer.Repositories
     public class CustomFeaturesRepository : ICustomFeaturesRepository
     {
         private readonly IDataAccess _db;
-        private readonly IConfiguration _configuration;
+        private readonly IAppSettingsService _appSettingsService;
         public static string? selectedDatabase = "";
-        public CustomFeaturesRepository(IDataAccess db, IConfiguration configuration)
+        private int? UserCode { get; set; }
+        public CustomFeaturesRepository(IDataAccess db, IAppSettingsService appSettingsService, IJwtExtractService jwtExtractService)
         {
             _db = db;
-            _configuration = configuration;
-            selectedDatabase = _configuration["database"];
+            _appSettingsService = appSettingsService;
+            UserCode = jwtExtractService.GetUserIdFromToken();
+            selectedDatabase = appSettingsService.GetDatabase();
         }
         public object getCustomFeatures(CustomFeatures customFeatures)
         {
@@ -34,7 +36,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("CUSTOM_FEATURES_ID", DbType.Int32, ParameterDirection.Input, customFeatures.CUSTOM_FEATURES_ID);
                 dyParam.AddDynamicParams("PROPERTY_ID", DbType.Int32, ParameterDirection.Input, customFeatures.PROPERTY_ID);
                 dyParam.AddDynamicParams("DESCRIPTION", DbType.String, ParameterDirection.Input, customFeatures.DESCRIPTION);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, customFeatures.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.FETCH.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
@@ -56,7 +58,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("CUSTOM_FEATURES_ID", DbType.Int32, ParameterDirection.Input, customFeatures.CUSTOM_FEATURES_ID);
                 dyParam.AddDynamicParams("PROPERTY_ID", DbType.Int32, ParameterDirection.Input, customFeatures.PROPERTY_ID);
                 dyParam.AddDynamicParams("DESCRIPTION", DbType.String, ParameterDirection.Input, customFeatures.DESCRIPTION);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, customFeatures.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.INSERT.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
@@ -78,7 +80,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("CUSTOM_FEATURES_ID", DbType.Int32, ParameterDirection.Input, customFeatures.CUSTOM_FEATURES_ID);
                 dyParam.AddDynamicParams("PROPERTY_ID", DbType.Int32, ParameterDirection.Input, customFeatures.PROPERTY_ID);
                 dyParam.AddDynamicParams("DESCRIPTION", DbType.String, ParameterDirection.Input, customFeatures.DESCRIPTION);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, customFeatures.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.UPDATE.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
@@ -99,7 +101,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.SelectedDB = _db.SelectedDatabase;
                 dyParam.AddDynamicParams("CUSTOM_FEATURES_ID", DbType.Int32, ParameterDirection.Input, customFeatures.CUSTOM_FEATURES_ID);
                 dyParam.AddDynamicParams("PROPERTY_ID", DbType.Int32, ParameterDirection.Input, customFeatures.PROPERTY_ID);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, customFeatures.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.DELETE.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 

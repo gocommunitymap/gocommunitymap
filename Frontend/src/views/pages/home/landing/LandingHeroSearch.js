@@ -21,18 +21,16 @@ import addDays from 'date-fns/addDays'
 import format from 'date-fns/format'
 import ReactDatePicker from 'react-datepicker'
 import { FixedSizeList } from 'react-window'
-import { City, Country, State } from 'country-state-city'
+import { Country } from 'country-state-city'
+import { useLoadScript, Autocomplete as GAutocomplete } from '@react-google-maps/api'
 import IconifyIcon from 'src/@core/components/icon'
 import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
-import { landingCountries, landingLocations } from 'src/@core/utils'
-
 import { defaultPageFont } from 'src/@core/utils'
 
 const LOCATION_POPPER_WIDTH = 460
-const MAX_CITIES_PER_COUNTRY = 250
-const WHERE_TO_COUNTRY_ISO = 'SO'
 const VIRTUAL_LIST_PADDING = 8
 const VIRTUAL_VISIBLE_ROWS = 6
+const placesLibrary = ['places']
 
 const renderVirtualRow = ({ data, index, style }) => {
   const row = data[index]
@@ -71,76 +69,43 @@ const VirtualizedListbox = forwardRef(function VirtualizedListbox(props, ref) {
   )
 })
 
-const buildLocationOptionsByCountryISO = countryISO => {
-  try {
-    const selectedCountry = Country.getCountryByCode(countryISO)
-
-    if (!selectedCountry) {
-      return landingLocations
-    }
-
-    const countryStates = State.getStatesOfCountry(selectedCountry.isoCode)
-
-    const stateNameByCode = countryStates.reduce((map, state) => {
-      map[state.isoCode] = state.name
-
-      return map
-    }, {})
-
-    const options = City.getCitiesOfCountry(selectedCountry.isoCode)
-      .slice(0, MAX_CITIES_PER_COUNTRY)
-      .map(city => ({
-        id: `${selectedCountry.isoCode}-${city.stateCode || 'NA'}-${city.name}`,
-        city: city.name,
-        region: stateNameByCode[city.stateCode] || selectedCountry.name,
-        country: selectedCountry.name,
-        stateCode: city.stateCode || '',
-        countryCode: selectedCountry.isoCode
-      }))
-
-    return options.length ? options : landingLocations
-  } catch {
-    return landingLocations
-  }
-}
-
-const locationOptions = buildLocationOptionsByCountryISO(WHERE_TO_COUNTRY_ISO)
-
 const buildCountryOptions = () => {
-  try {
-    return Country.getAllCountries().map(country => ({
-      id: `country-${country.isoCode}`,
-      city: '',
-      region: '',
-      country: country.name,
-      stateCode: '',
-      countryCode: country.isoCode
-    }))
-  } catch {
-    return landingCountries.map(country => ({
-      id: `country-${country}`,
-      city: '',
-      region: '',
-      country,
-      stateCode: '',
-      countryCode: ''
-    }))
-  }
+  return Country.getAllCountries().map(country => ({
+    id: `country-${country.isoCode}`,
+    city: '',
+    region: '',
+    country: country.name,
+    stateCode: '',
+    countryCode: country.isoCode
+  }))
 }
 
 const countryOptions = buildCountryOptions()
 
-const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearch: onSearchCallback }) => {
+const LandingHeroSearch = ({
+  tabs,
+  fields = [],
+  activeTab,
+  setActiveTab,
+  onSearch: onSearchCallback,
+  setHotelsSearchParams
+}) => {
   const router = useRouter()
-  const [fromLocation, setFromLocation] = useState(countryOptions[0] || null)
-  const [toLocation, setToLocation] = useState(locationOptions[2] || locationOptions[0] || null)
-  const [startDate, setStartDate] = useState(new Date())
-  const [endDate, setEndDate] = useState(addDays(new Date(), 6))
-  const [adults, setAdults] = useState(2)
+  const [fromLocation, setFromLocation] = useState(countryOptions.find(option => option.default) || null)
+  const [toPlace, setToPlace] = useState({ city: '', country: '', formattedAddress: '' })
+  const [placesSearchRef, setPlacesSearchRef] = useState(null)
+  const [startDate, setStartDate] = useState(null)
+  const [endDate, setEndDate] = useState(null)
+  const [adults, setAdults] = useState(0)
   const [children, setChildren] = useState(0)
-  const [rooms, setRooms] = useState(1)
+  const [rooms, setRooms] = useState(0)
   const [travelingWithPets, setTravelingWithPets] = useState(false)
   const [guestAnchorEl, setGuestAnchorEl] = useState(null)
+  const isRentalTab = activeTab === 'rentals'
+  const [toPlaceKey, setToPlaceKey] = useState(0)
+
+  const searchIsNotNull =
+    fromLocation || toPlace?.country || startDate || endDate || adults + children > 0 || rooms > 0 || travelingWithPets
 
   const DateRangeInput = forwardRef(({ value, onClick }, ref) => {
     return (
@@ -168,6 +133,31 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
 
   DateRangeInput.displayName = 'DateRangeInput'
 
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY,
+    libraries: placesLibrary
+  })
+
+  const onPlaceChanged = () => {
+    if (placesSearchRef) {
+      const place = placesSearchRef.getPlace()
+      let city = ''
+      let country = ''
+      if (place.address_components) {
+        for (const component of place.address_components) {
+          if (component.types.includes('locality') && !city) city = component.long_name
+          if (component.types.includes('postal_town') && !city) city = component.long_name
+          if (component.types.includes('country')) country = component.long_name
+        }
+      }
+      setToPlace({
+        city: city || place.name || '',
+        country,
+        formattedAddress: place.formatted_address || ''
+      })
+    }
+  }
+
   const handleDateRangeChange = dates => {
     const [start, end] = dates
     setStartDate(start)
@@ -177,10 +167,6 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
   const startDateValue = startDate ? format(startDate, 'yyyy-MM-dd') : ''
   const endDateValue = endDate ? format(endDate, 'yyyy-MM-dd') : ''
   const totalGuests = adults + children
-
-  const guestSummary = `${adults} adult${adults > 1 ? 's' : ''} - ${children} children - ${rooms} room${
-    rooms > 1 ? 's' : ''
-  }`
 
   const fieldMeta = fields.reduce((map, field) => {
     map[field.id] = field
@@ -200,41 +186,51 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
 
     // If a callback is provided (e.g. home page filters in-place), call it and stay on the page
     if (onSearchCallback) {
-      onSearchCallback({
+      const payload = {
         fromCountry: fromLocation?.country || '',
+        fromCountryCode: fromLocation?.countryCode || '',
         fromCity: fromLocation?.city || '',
-        toCountry: toLocation?.country || '',
-        toCity: toLocation?.city || '',
+        toCountry: toPlace.country,
+        toCity: toPlace.city,
         checkIn: startDateValue,
-        checkOut: endDateValue,
-        guests: totalGuests,
-        adults,
-        children,
-        rooms,
-        pets: travelingWithPets
+        checkOut: endDateValue
+      }
+
+      payload.guests = totalGuests
+      payload.adults = adults
+      payload.children = children
+      payload.rooms = rooms
+      payload.pets = travelingWithPets
+
+      onSearchCallback({
+        ...payload
       })
 
       return
     }
 
-    const params = new URLSearchParams({
+    const paramsObject = {
       from: fromCountry,
       to: toCountry,
       startDate: startDateValue,
-      endDate: endDateValue,
-      guests: String(totalGuests),
-      adults: String(adults),
-      children: String(children),
-      rooms: String(rooms),
-      pets: String(travelingWithPets)
-    })
+      endDate: endDateValue
+    }
+
+    paramsObject.guests = String(totalGuests)
+    paramsObject.adults = String(adults)
+    paramsObject.children = String(children)
+    paramsObject.rooms = String(rooms)
+    paramsObject.pets = String(travelingWithPets)
+
+    const params = new URLSearchParams(paramsObject)
 
     params.set('fromCity', fromLocation?.city || '')
     params.set('fromCountry', fromLocation?.country || '')
-    params.set('toCity', toLocation?.city || '')
-    params.set('toCountry', toLocation?.country || '')
+    params.set('fromCountryCode', fromLocation?.countryCode || '')
+    params.set('toCity', toPlace.city)
+    params.set('toCountry', toPlace.country)
 
-    router.push(`${tab?.route || '/rental/properties'}?${params.toString()}`)
+    router.push(`${tab?.route || '/rentals/properties'}?${params.toString()}`)
   }
 
   const formatLocationLabel = location => {
@@ -250,7 +246,7 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
   }
 
   const fromCountry = formatLocationLabel(fromLocation)
-  const toCountry = formatLocationLabel(toLocation)
+  const toCountry = toPlace.formattedAddress || [toPlace.city, toPlace.country].filter(Boolean).join(', ')
 
   const renderCountryOption = (props, option) => {
     const { key, ...rest } = props
@@ -283,49 +279,6 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
           >
             {option.country}
           </Typography>
-        </Stack>
-      </Box>
-    )
-  }
-
-  const renderLocationOption = (props, option) => {
-    const { key, ...rest } = props
-
-    return (
-      <Box
-        key={key}
-        component='li'
-        {...rest}
-        sx={{
-          width: { xs: 'calc(100vw - 56px)', sm: LOCATION_POPPER_WIDTH },
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          py: 1.2,
-          px: 1.25,
-          borderBottom: '1px solid #e7edf3',
-          '&:last-of-type': { borderBottom: 'none' }
-        }}
-      >
-        <Stack direction='row' spacing={1.1} alignItems='center' sx={{ width: '100%' }}>
-          <IconifyIcon icon='tabler:map-pin' color='#2f3948' fontSize='1.35rem' />
-          <Box>
-            <Typography
-              sx={{
-                fontWeight: 800,
-                color: '#07102b',
-                fontFamily: defaultPageFont,
-                lineHeight: 1.2,
-                fontSize: '1.05rem'
-              }}
-            >
-              {option.city}
-            </Typography>
-            <Typography
-              sx={{ color: '#2f3d54', fontFamily: defaultPageFont, lineHeight: 1.2, fontSize: '0.95rem', mt: 0.2 }}
-            >
-              {option.region}, {option.country}
-            </Typography>
-          </Box>
         </Stack>
       </Box>
     )
@@ -515,6 +468,7 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
                     <TextField
                       {...params}
                       variant='standard'
+                      placeholder='--Select--'
                       InputProps={{
                         ...params.InputProps,
                         disableUnderline: true
@@ -563,61 +517,49 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
                 >
                   Where to?
                 </Typography>
-                <Autocomplete
-                  fullWidth
-                  options={locationOptions}
-                  value={toLocation}
-                  onChange={(_, value) => setToLocation(value || locationOptions[2] || locationOptions[0] || null)}
-                  getOptionLabel={option => `${option.city}, ${option.country}`}
-                  isOptionEqualToValue={(option, value) => option.id === value?.id}
-                  renderOption={renderLocationOption}
-                  ListboxComponent={VirtualizedListbox}
-                  slotProps={{
-                    popper: {
-                      sx: {
-                        '& .MuiAutocomplete-paper': {
-                          width: { xs: 'calc(100vw - 32px)', sm: LOCATION_POPPER_WIDTH },
-                          maxWidth: '100vw'
-                        }
-                      }
-                    }
-                  }}
-                  ListboxProps={{
-                    sx: {
-                      width: { xs: 'calc(100vw - 56px)', sm: LOCATION_POPPER_WIDTH },
-                      maxWidth: '100%',
-                      maxHeight: 'none',
-                      p: 0,
-                      overflowX: 'hidden',
-                      scrollbarWidth: 'none',
-                      msOverflowStyle: 'none',
-                      '&::-webkit-scrollbar': { display: 'none' }
-                    }
-                  }}
-                  disableClearable
-                  popupIcon={null}
-                  renderInput={params => (
+                {isLoaded ? (
+                  <GAutocomplete
+                    key={toPlaceKey}
+                    onLoad={setPlacesSearchRef}
+                    onPlaceChanged={onPlaceChanged}
+                    options={{ fields: ['address_components', 'formatted_address', 'geometry', 'name'] }}
+                  >
                     <TextField
-                      {...params}
                       variant='standard'
-                      InputProps={{
-                        ...params.InputProps,
-                        disableUnderline: true
+                      placeholder='--Select--'
+                      InputProps={{ disableUnderline: true }}
+                      sx={{
+                        width: '100%',
+                        '& .MuiInputBase-root': { p: 0 },
+                        '& .MuiInputBase-input': {
+                          fontWeight: 700,
+                          color: '#0f1419',
+                          fontFamily: defaultPageFont,
+                          fontSize: { xs: '1rem', md: '1.05rem' },
+                          p: 0
+                        }
                       }}
                     />
-                  )}
-                  sx={{
-                    '& .MuiInputBase-root': { p: 0 },
-                    '& .MuiAutocomplete-input': {
-                      fontWeight: 700,
-                      color: '#0f1419',
-                      fontFamily: defaultPageFont,
-                      fontSize: { xs: '1rem', md: '1.05rem' },
-                      p: 0,
-                      cursor: 'pointer'
-                    }
-                  }}
-                />
+                  </GAutocomplete>
+                ) : (
+                  <TextField
+                    variant='standard'
+                    placeholder='Loading...'
+                    disabled
+                    InputProps={{ disableUnderline: true }}
+                    sx={{
+                      width: '100%',
+                      '& .MuiInputBase-root': { p: 0 },
+                      '& .MuiInputBase-input': {
+                        fontWeight: 700,
+                        color: '#0f1419',
+                        fontFamily: defaultPageFont,
+                        fontSize: { xs: '1rem', md: '1.05rem' },
+                        p: 0
+                      }
+                    }}
+                  />
+                )}
               </Box>
             </Stack>
           </Box>
@@ -655,14 +597,17 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
                       monthsShown={2}
                       shouldCloseOnSelect={false}
                       dateFormat='MMM, d'
+                      minDate={new Date()}
                       startDate={startDate}
                       endDate={endDate}
                       selected={startDate}
+                      placeholderText='--Select Dates--'
                       onChange={handleDateRangeChange}
                       customInput={
                         <TextField
                           variant='standard'
                           value='DDD M - M'
+                          placeholder='select Dates'
                           InputProps={{
                             disableUnderline: true,
                             readOnly: true,
@@ -670,7 +615,7 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
                               fontWeight: 700,
                               color: '#0f1419',
                               fontFamily: defaultPageFont,
-                              fontSize: { xs: '1rem', md: '1.05rem' },
+                              fontSize: { xs: '1rem', md: '0.9rem' },
                               cursor: 'pointer',
                               p: 0
                             }
@@ -683,8 +628,6 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
               </Box>
             </Stack>
           </Box>
-
-          {/* Guests */}
           <Box
             sx={{
               flex: 1,
@@ -707,7 +650,7 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
                     fontFamily: defaultPageFont
                   }}
                 >
-                  Guests
+                  Guests/Rooms
                 </Typography>
                 <Box
                   onClick={event => setGuestAnchorEl(event.currentTarget)}
@@ -725,7 +668,21 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
                       fontSize: { xs: '1rem', md: '1.05rem' }
                     }}
                   >
-                    {adults} Adult{adults > 1 ? 's' : ''}
+                    {adults + children == 0 ? (
+                      <Typography
+                        variant='subtitle2'
+                        color='secondary.main'
+                        sx={{ fontFamily: defaultPageFont, fontSize: '1.1rem', fontWeight: 500 }}
+                      >
+                        --Select--
+                      </Typography>
+                    ) : (
+                      <Typography sx={{ fontFamily: defaultPageFont, fontSize: '0.9rem', fontWeight: 500 }}>
+                        {totalGuests > 0 && `${totalGuests} Guest${totalGuests > 1 ? 's' : ''}`}{' '}
+                        {rooms > 0 && `${totalGuests > 0 && ', '}${rooms} Room${rooms > 1 ? 's' : ''}`}
+                      </Typography>
+                    )}
+                    {/* {adults} Adult{adults > 1 ? 's' : ''} */}
                   </Typography>
                 </Box>
 
@@ -761,8 +718,15 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
                         <Stack
                           direction='row'
                           alignItems='center'
+                          justifyContent='space-between'
                           spacing={0.6}
-                          sx={{ border: '1px solid #cfd7e2', borderRadius: 1.2, px: 0.6, py: 0.3, minWidth: 156 }}
+                          sx={{
+                            border: '1px solid #cfd7e2',
+                            borderRadius: 1.2,
+                            px: 0.6,
+                            py: 0.3,
+                            minWidth: 156
+                          }}
                         >
                           <IconButton
                             size='small'
@@ -860,6 +824,35 @@ const LandingHeroSearch = ({ tabs, fields = [], activeTab, setActiveTab, onSearc
           Search
         </Button>
       </Paper>
+      {searchIsNotNull && (
+        <Button
+          variant='text'
+          color='error'
+          sx={{
+            fontWeight: 700,
+            fontFamily: defaultPageFont,
+            selfAlign: 'center'
+          }}
+          onClick={() => {
+            setFromLocation(null)
+            setPlacesSearchRef(null)
+            onPlaceChanged()
+            setToPlace({ city: null, country: null, formattedAddress: null })
+            setStartDate(null)
+            setEndDate(null)
+            setAdults(0)
+            setChildren(0)
+            setRooms(0)
+            setTravelingWithPets(false)
+            setToPlaceKey(prev => prev + 1)
+            setHotelsSearchParams({})
+
+            // Implementation for clear button
+          }}
+        >
+          Clear <IconifyIcon icon='tabler:x' fontSize='1rem' sx={{ ml: 0.5 }} />
+        </Button>
+      )}
     </Box>
   )
 }

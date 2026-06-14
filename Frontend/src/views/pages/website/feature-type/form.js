@@ -20,6 +20,7 @@ export const ModalForm = ({ control, states, handleDiscard, onSubmit, handleSubm
       onClose={handleDiscard}
       isOpen={states.isOpenModal}
       title={`${states.isEdit ? 'Edit' : 'Add New'} ${pageTitle}`}
+      modelMaxWidth={550}
     >
       <form onSubmit={handleSubmit(onSubmit)} autoComplete='off'>
         <Grid container spacing={3} mt={0}>
@@ -102,6 +103,20 @@ export const ModalForm = ({ control, states, handleDiscard, onSubmit, handleSubm
                       render={({ field: { value, onChange } }) => (
                         <FormControlLabel
                           label='Rental'
+                          value={value}
+                          onChange={onChange}
+                          control={<Switch color='secondary' checked={Boolean(value)} />}
+                        />
+                      )}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <Controller
+                      name='ROOMS_ENABLED'
+                      control={control}
+                      render={({ field: { value, onChange } }) => (
+                        <FormControlLabel
+                          label='Rooms'
                           value={value}
                           onChange={onChange}
                           control={<Switch color='secondary' checked={Boolean(value)} />}

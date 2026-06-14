@@ -1,4 +1,4 @@
-import { Stack, Typography } from '@mui/material'
+import { Stack, Tooltip, Typography } from '@mui/material'
 import IconifyIcon from 'src/@core/components/icon'
 
 import { defaultPageFont } from 'src/@core/utils'
@@ -13,9 +13,11 @@ export const StarRating = ({ value, showValue = true }) => {
 
   return (
     <Stack direction='row' spacing={0.3} alignItems='center'>
-      {stars.map((icon, i) => (
-        <IconifyIcon key={i} icon={icon} fontSize='0.85rem' color='#f3b11d' />
-      ))}
+      <Tooltip title={`${value} Stars`} placement='top'>
+        {stars.map((icon, i) => (
+          <IconifyIcon key={i} icon={icon} fontSize='0.85rem' color='#f3b11d' />
+        ))}
+      </Tooltip>
       {showValue && (
         <Typography
           sx={{ color: '#0b1730', fontFamily: defaultPageFont, fontWeight: 700, fontSize: '0.85rem', ml: 0.5 }}

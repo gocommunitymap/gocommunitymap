@@ -1,0 +1,1 @@
+.Net Version: 7.0.10

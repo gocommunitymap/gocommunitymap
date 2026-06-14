@@ -1,7 +1,6 @@
 ﻿using BusinessLogicLayer.Models;
-
+using BusinessLogicLayer.Interfaces;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
@@ -13,19 +12,18 @@ namespace BusinessLogicLayer.Interfaces
 {
     public class FileServiceRepository : IFileServiceRepository
     {
-        private readonly IConfiguration _configuration;
-        private readonly IHostingEnvironment _hostingEnvironment;
+        private readonly IHostingEnvironment hostingEnvironment;
         private string defaultFileName = "";
         private string defaultFilePath = "";
         private string path = "";
 
-        public FileServiceRepository(IConfiguration configuration, IHostingEnvironment hostingEnvironment)
+        public FileServiceRepository(IAppSettingsService appSettingsService, IHostingEnvironment hostingEnvironment)
         {
-            _configuration = configuration;
-            _hostingEnvironment = hostingEnvironment;
-            defaultFileName = _configuration.GetSection("Files").GetSection("DefaultFileName").Value;
-            defaultFilePath = _configuration.GetSection("Files").GetSection("DefaultFilePath").Value;
-            path = _hostingEnvironment.ContentRootPath.Substring(0, _hostingEnvironment.ContentRootPath.LastIndexOf("\\") + 1);
+            var filesSettings = appSettingsService.GetFilesSettings();
+            hostingEnvironment = hostingEnvironment;
+            defaultFileName = filesSettings.DefaultFileName;
+            defaultFilePath = filesSettings.DefaultFilePath;
+            path = hostingEnvironment.ContentRootPath.Substring(0, hostingEnvironment.ContentRootPath.LastIndexOf("\\") + 1);
 
         }
         public int CalculateChar(char[] arr, string value)

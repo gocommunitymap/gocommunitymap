@@ -61,13 +61,14 @@ const refreshAccessToken = async () => {
         if (userData) {
           toast.error('Session has been expired, Please Re-login', {
             position: 'top-center',
-            style: { padding: 10, fontSize: 24, minWidth: 200 },
+            icon: '⚠️',
+            style: { padding: 10, fontSize: 12, minWidth: 200 },
             duration: 5000
           })
         }
 
         window.localStorage.removeItem('userData')
-        window.location.replace('/login')
+        window.location.replace('/')
       })
   } catch (error) {
     console.error('Failed to refresh token', error)
@@ -77,7 +78,6 @@ const refreshAccessToken = async () => {
 axios.interceptors.request.use(
   config => config,
   error => {
-
     return Promise.reject(error)
   }
 )
@@ -94,7 +94,6 @@ axios.interceptors.response.use(
     ) {
       originalRequest._retry = true
       try {
-
         const newAccessToken = await refreshAccessToken()
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
 

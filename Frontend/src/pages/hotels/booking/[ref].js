@@ -1,12 +1,29 @@
-import { Box, Button, Card, Chip, Divider, Grid, Skeleton, Stack, Typography } from '@mui/material'
+import {
+  Box,
+  Button,
+  Card,
+  Chip,
+  Divider,
+  Grid,
+  Skeleton,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography
+} from '@mui/material'
 import { Icon } from '@iconify/react'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import GuestBlankLayout from 'src/@core/layouts/GuestLayoutAppBar'
 import SeoHead from 'src/components/SeoHead'
 import { getBookingAPI } from 'src/configs/services/api-methods/guest'
-import { defaultPageFont } from 'src/@core/utils'
+import { dateConvert, defaultPageFont } from 'src/@core/utils'
 import BlankLayout from 'src/@core/layouts/BlankLayout'
+import themeConfig from 'src/configs/themeConfig'
 
 const formatDate = dateStr => {
   if (!dateStr) return '—'
@@ -87,10 +104,25 @@ const HotelBookingDetail = () => {
     return { bg: '#f5f5f5', text: '#555' }
   }
 
+  const roomDetails = (() => {
+    if (!booking?.ROOM_DETAILS) return []
+    try {
+      const parsed = JSON.parse(booking.ROOM_DETAILS)
+
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  })()
+
   return (
     <>
       <SeoHead
-        title={booking ? `Booking #${booking.CODE || ref} – GoCommunityMap` : 'Booking Details – GoCommunityMap'}
+        title={
+          booking
+            ? `Booking #${booking.CODE || ref} – ${themeConfig.templateName}`
+            : `Booking Details – ${themeConfig.templateName}`
+        }
         description='View your hotel booking details.'
       />
 
@@ -256,10 +288,10 @@ const HotelBookingDetail = () => {
                             Check-in
                           </Typography>
                           <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
-                            {formatDate(booking.CHECK_IN)}
+                            {dateConvert(booking.CHECK_IN)}
                           </Typography>
                           <Typography variant='caption' color='text.secondary'>
-                            From 3:00 PM
+                            {booking?.CHECK_IN_TIMESLOT_DESC ? `From ${booking.CHECK_IN_TIMESLOT_DESC}` : 'From —'}
                           </Typography>
                         </Box>
                       </Stack>
@@ -285,10 +317,10 @@ const HotelBookingDetail = () => {
                             Check-out
                           </Typography>
                           <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
-                            {formatDate(booking.CHECK_OUT)}
+                            {dateConvert(booking.CHECK_OUT)}
                           </Typography>
                           <Typography variant='caption' color='text.secondary'>
-                            By 11:00 AM
+                            {booking?.CHECK_OUT_TIMESLOT_DESC ? `By ${booking.CHECK_OUT_TIMESLOT_DESC}` : 'By —'}
                           </Typography>
                         </Box>
                       </Stack>
@@ -326,6 +358,87 @@ const HotelBookingDetail = () => {
                 </Box>
               </Card>
 
+              {/* Booked Rooms */}
+              {roomDetails.length > 0 && (
+                <Card sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+                  <Typography variant='subtitle2' fontWeight={700} fontFamily={defaultPageFont} sx={{ mb: 2.5 }}>
+                    Booked Rooms
+                  </Typography>
+                  <TableContainer>
+                    <Table size='small'>
+                      <TableHead>
+                        <TableRow sx={{ backgroundColor: '#27ae60' }}>
+                          {['#', 'Room Type', 'Price / Night', 'Qty', 'Nights', 'Amount'].map((h, i) => (
+                            <TableCell
+                              key={h}
+                              align={i === 0 || i === 1 ? 'left' : 'right'}
+                              sx={{
+                                color: '#fff',
+                                fontWeight: 700,
+                                fontSize: 12,
+                                whiteSpace: 'nowrap',
+                                borderBottom: 'none'
+                              }}
+                            >
+                              {h}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {roomDetails.map((room, idx) => {
+                          const roomAmount =
+                            Number(room.PRICE || 0) * (room.ROOMS_QUANTITY || 1) * Number(booking.NIGHTS || 1)
+
+                          return (
+                            <TableRow
+                              key={room.ROOM_ID || idx}
+                              sx={{
+                                backgroundColor: idx % 2 === 0 ? '#f9fdfb' : '#fff',
+                                '&:last-child td': { borderBottom: 0 }
+                              }}
+                            >
+                              <TableCell sx={{ color: '#888', fontWeight: 600, fontFamily: defaultPageFont }}>
+                                {idx + 1}
+                              </TableCell>
+                              <TableCell sx={{ color: '#1a1a1a', fontWeight: 600, fontFamily: defaultPageFont }}>
+                                {room.ROOM_TYPE?.[0]?.ROOM_TYPE_DESC || '—'}
+                              </TableCell>
+                              <TableCell
+                                align='right'
+                                sx={{
+                                  color: '#27ae60',
+                                  fontWeight: 700,
+                                  whiteSpace: 'nowrap',
+                                  fontFamily: defaultPageFont
+                                }}
+                              >
+                                $ {Number(room.PRICE || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell align='right' sx={{ color: '#555', fontFamily: defaultPageFont }}>
+                                {room.ROOMS_QUANTITY || 1}
+                              </TableCell>
+                              <TableCell align='right' sx={{ color: '#555', fontFamily: defaultPageFont }}>
+                                {booking.NIGHTS || 1}
+                              </TableCell>
+                              <TableCell
+                                align='right'
+                                sx={{
+                                  color: '#27ae60',
+                                  fontWeight: 700,
+                                  fontFamily: defaultPageFont
+                                }}
+                              >
+                                $ {roomAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Card>
+              )}
               <Grid container spacing={3}>
                 {/* Left column */}
                 <Grid item xs={12} md={7}>
@@ -375,7 +488,7 @@ const HotelBookingDetail = () => {
                       </Stack>
                       <Stack direction='row' justifyContent='space-between'>
                         <Typography variant='body2' color='text.secondary' fontFamily={defaultPageFont}>
-                          Taxes &amp; fees
+                          Taxes & fees
                         </Typography>
                         <Typography variant='body2' fontWeight={600} fontFamily={defaultPageFont}>
                           $ {Number(booking.SERVICE_FEE || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}

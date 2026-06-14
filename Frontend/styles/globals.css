@@ -22,3 +22,32 @@ code:not([class*='language-']):after {
 code[class*='language-'] {
   padding: 0;
 }
+.MuiDataGrid-cell {
+  border-bottom: 1px solid #bdbdbd !important;
+}
+
+.MuiAutocomplete-popper .MuiAutocomplete-listbox .MuiAutocomplete-option:hover {
+  background-color: #f0faf6 !important;
+}
+
+.MuiAutocomplete-popper .MuiAutocomplete-listbox .MuiAutocomplete-option.Mui-focused {
+  background-color: #f0faf6 !important;
+}
+/* Google Places Autocomplete dropdown — wider suggestion list */
+.pac-container {
+  min-width: 360px !important;
+  width: auto !important;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(14, 30, 37, 0.14);
+  border: 1px solid #d5e3de;
+  font-family: 'Inter', sans-serif;
+  z-index: 9999;
+}
+.pac-item {
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.pac-item:hover {
+  background-color: #f0faf6;
+}

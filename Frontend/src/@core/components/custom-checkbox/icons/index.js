@@ -66,4 +66,3 @@ const CustomCheckboxIcons = props => {
 }
 
 export default CustomCheckboxIcons
-

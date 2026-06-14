@@ -5,8 +5,9 @@ import { Icon } from '@iconify/react'
 import GuestBlankLayout from 'src/@core/layouts/GuestLayoutAppBar'
 import SeoHead from 'src/components/SeoHead'
 import { getBookingAPI, getBookingStatusAPI } from 'src/configs/services/api-methods/guest'
-import { defaultPageFont } from 'src/@core/utils'
+import { dateConvert, defaultPageFont } from 'src/@core/utils'
 import BlankLayout from 'src/@core/layouts/BlankLayout'
+import themeConfig from 'src/configs/themeConfig'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ const BookingScanSummary = () => {
   const [booking, setBooking] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
+  const isRentalInvoice = router.pathname?.startsWith('/rentals/')
   useEffect(() => {
     if (!ref) return
     setLoading(true)
@@ -61,6 +62,33 @@ const BookingScanSummary = () => {
 
   const sc = statusConfig(booking?.STATUS)
   const guestName = booking ? `${booking.GUEST_FIRST_NAME || ''} ${booking.GUEST_LAST_NAME || ''}`.trim() : '—'
+
+  const roomDetails = (() => {
+    if (!booking?.ROOM_DETAILS) return []
+    try {
+      const parsed = JSON.parse(booking.ROOM_DETAILS)
+
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  })()
+
+  const roomsFromApi = Number(booking?.ROOMS || 0)
+  const roomsFromDetails = roomDetails.reduce((total, room) => total + Number(room?.ROOMS_QUANTITY || 1), 0)
+  const roomsCount = roomsFromDetails > 0 ? roomsFromDetails : roomsFromApi
+
+  const checkIn = booking?.CHECK_IN ? new Date(booking.CHECK_IN) : null
+  const checkOut = booking?.CHECK_OUT ? new Date(booking.CHECK_OUT) : null
+
+  const calcNights = checkIn && checkOut ? Math.max(1, Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24))) : null
+  const nightsCount = Number(booking?.NIGHTS || 0) > 0 ? Number(booking.NIGHTS) : calcNights || 1
+
+  const adultsCount = Math.max(1, Number(booking?.ADULTS || 1))
+  const childrenCount = Math.max(0, Number(booking?.CHILDREN || 0))
+  const billedEmail = booking?.GUEST_EMAIL || booking?.EMAIL || ''
+  const billedPhone = booking?.GUEST_PHONE || booking?.PHONE || ''
+  const billedCountry = booking?.GUEST_COUNTRY || booking?.COUNTRY || ''
 
   return (
     <>
@@ -104,7 +132,7 @@ const BookingScanSummary = () => {
                 Booking Summary
               </Typography>
               <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
-                Scanned via GoCommunityMap
+                Scanned via {themeConfig.templateName}
               </Typography>
             </Box>
           </Stack>
@@ -215,7 +243,55 @@ const BookingScanSummary = () => {
                 <Divider sx={{ mb: 2.5 }} />
 
                 {/* Billed To */}
-                <SummaryRow icon='tabler:user-circle' label='Billed To' value={guestName || '—'} />
+                <Stack direction='row' spacing={1.5} alignItems='flex-start'>
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 1.5,
+                      backgroundColor: '#f5f5f5',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      mt: 0.25
+                    }}
+                  >
+                    <Icon icon='tabler:user-circle' style={{ fontSize: 17, color: '#555' }} />
+                  </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                      Billed To
+                    </Typography>
+                    <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont} sx={{ mb: 0.25 }}>
+                      {guestName || '—'}
+                    </Typography>
+                    <Typography
+                      variant='caption'
+                      color='text.secondary'
+                      fontFamily={defaultPageFont}
+                      sx={{ display: 'block' }}
+                    >
+                      {billedEmail || '—'}
+                    </Typography>
+                    <Typography
+                      variant='caption'
+                      color='text.secondary'
+                      fontFamily={defaultPageFont}
+                      sx={{ display: 'block' }}
+                    >
+                      {billedPhone || '—'}
+                    </Typography>
+                    <Typography
+                      variant='caption'
+                      color='text.secondary'
+                      fontFamily={defaultPageFont}
+                      sx={{ display: 'block' }}
+                    >
+                      {billedCountry || '—'}
+                    </Typography>
+                  </Box>
+                </Stack>
 
                 <Divider sx={{ my: 2 }} />
 
@@ -259,7 +335,7 @@ const BookingScanSummary = () => {
                       </Typography>
                     </Stack>
                     <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
-                      {fmtDate(booking.CHECK_IN)}
+                      {dateConvert(booking.CHECK_IN)}
                     </Typography>
                   </Box>
                   <Box
@@ -279,7 +355,7 @@ const BookingScanSummary = () => {
                       </Typography>
                     </Stack>
                     <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
-                      {fmtDate(booking.CHECK_OUT)}
+                      {dateConvert(booking.CHECK_OUT)}
                     </Typography>
                   </Box>
                 </Stack>
@@ -296,21 +372,15 @@ const BookingScanSummary = () => {
                   Stay Details
                 </Typography>
                 <Stack direction='row' spacing={1}>
-                  <DetailChip
-                    icon='tabler:moon'
-                    value={`${booking.NIGHTS} night${Number(booking.NIGHTS) !== 1 ? 's' : ''}`}
-                  />
-                  <DetailChip
-                    icon='tabler:door'
-                    value={`${booking.ROOMS} room${Number(booking.ROOMS) !== 1 ? 's' : ''}`}
-                  />
+                  <DetailChip icon='tabler:moon' value={`${nightsCount} night${nightsCount !== 1 ? 's' : ''}`} />
+                  {!isRentalInvoice && (
+                    <DetailChip icon='tabler:door' value={`${roomsCount} room${roomsCount !== 1 ? 's' : ''}`} />
+                  )}
                   <DetailChip
                     icon='tabler:users'
                     value={[
-                      `${booking.ADULTS} adult${Number(booking.ADULTS) !== 1 ? 's' : ''}`,
-                      Number(booking.CHILDREN) > 0
-                        ? `${booking.CHILDREN} child${Number(booking.CHILDREN) !== 1 ? 'ren' : ''}`
-                        : null
+                      `${adultsCount} adult${adultsCount !== 1 ? 's' : ''}`,
+                      childrenCount > 0 ? `${childrenCount} child${childrenCount !== 1 ? 'ren' : ''}` : null
                     ]
                       .filter(Boolean)
                       .join(', ')}
@@ -331,7 +401,7 @@ const BookingScanSummary = () => {
                 <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
                   Powered by{' '}
                   <Box component='span' sx={{ color: '#27ae60', fontWeight: 700 }}>
-                    GoCommunityMap
+                    {themeConfig.templateName}
                   </Box>
                 </Typography>
               </Box>

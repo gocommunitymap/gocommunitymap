@@ -14,7 +14,7 @@ import {
 } from '@mui/material'
 import IconifyIcon from 'src/@core/components/icon'
 
-import { defaultPageFont } from 'src/@core/utils'
+import { amountWithComma, defaultPageFont } from 'src/@core/utils'
 
 const SidebarBlock = ({ title, children }) => (
   <Card elevation={0} sx={{ borderRadius: 2.5, border: '1px solid #e8eff2', mb: 2.5, backgroundColor: '#ffffff' }}>
@@ -38,8 +38,11 @@ const SidebarBlock = ({ title, children }) => (
 )
 
 const LandingFilterSidebar = ({ filterConfig, filterState, setFilterState, viewMode = 'list', onViewModeChange }) => {
+  filterState?.length > 0 && filterState?.map(item => {})
+
   const toggleCheckbox = (groupId, optionId) => {
     const current = filterState[groupId] || {}
+
     setFilterState(prev => ({
       ...prev,
       [groupId]: {
@@ -232,7 +235,13 @@ const LandingFilterSidebar = ({ filterConfig, filterState, setFilterState, viewM
           return (
             <SidebarBlock key={group.id} title={group.title}>
               <RadioGroup value={selectedValue || ''} onChange={e => setRadio(group.id, e.target.value)}>
-                <Stack spacing={0.8}>
+                <Stack
+                  spacing={0.8}
+                  sx={{
+                    maxHeight: 200,
+                    overflowY: 'auto'
+                  }}
+                >
                   {group.options?.map(option => (
                     <FormControlLabel
                       key={option.id}
@@ -270,7 +279,13 @@ const LandingFilterSidebar = ({ filterConfig, filterState, setFilterState, viewM
         if (group.type === 'checkbox') {
           return (
             <SidebarBlock key={group.id} title={group.title}>
-              <Stack spacing={0.8}>
+              <Stack
+                spacing={0.8}
+                sx={{
+                  maxHeight: 200,
+                  overflowY: 'auto'
+                }}
+              >
                 {group?.options?.map(option => {
                   const checked = filterState[group.id]?.[option.id] ?? Boolean(option.defaultChecked)
 
@@ -325,37 +340,66 @@ const LandingFilterSidebar = ({ filterConfig, filterState, setFilterState, viewM
                   onChange={(e, newValue) => setRange(group.id, newValue)}
                   min={group.min}
                   max={group.max}
-                  valueLabelDisplay='auto'
+                  valueLabelDisplay='off'
                   sx={{
                     color: '#10B981',
                     '& .MuiSlider-thumb': {
                       width: 18,
-                      height: 18
+                      height: 18,
+                      zIndex: '10 !important'
                     }
                   }}
                 />
                 <Stack direction='row' spacing={1}>
                   <Card sx={{ flex: 1, backgroundColor: '#f8fafb' }}>
-                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <CardContent
+                      sx={{
+                        p: 1.5,
+                        '&:last-child': { pb: 1.5 },
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
                       <Typography sx={{ fontSize: '0.75rem', color: '#7a8ca0', fontFamily: defaultPageFont, mb: 0.5 }}>
                         Min
                       </Typography>
                       <Typography
-                        sx={{ fontSize: '0.9rem', color: '#1f2e47', fontFamily: defaultPageFont, fontWeight: 600 }}
+                        sx={{
+                          textAlign: 'right',
+                          fontSize: '0.8rem',
+                          color: '#1f2e47',
+                          fontFamily: defaultPageFont,
+                          fontWeight: 600
+                        }}
                       >
-                        {group.formatValue ? group.formatValue(value[0]) : value[0]}
+                        {group.formatValue ? group.formatValue(value[0]) : amountWithComma(value[0])}
                       </Typography>
                     </CardContent>
                   </Card>
                   <Card sx={{ flex: 1, backgroundColor: '#f8fafb' }}>
-                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <CardContent
+                      sx={{
+                        p: 1.5,
+                        '&:last-child': { pb: 1.5 },
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
                       <Typography sx={{ fontSize: '0.75rem', color: '#7a8ca0', fontFamily: defaultPageFont, mb: 0.5 }}>
                         Max
                       </Typography>
                       <Typography
-                        sx={{ fontSize: '0.9rem', color: '#1f2e47', fontFamily: defaultPageFont, fontWeight: 600 }}
+                        sx={{
+                          textAlign: 'right',
+                          fontSize: '0.8rem',
+                          color: '#1f2e47',
+                          fontFamily: defaultPageFont,
+                          fontWeight: 600
+                        }}
                       >
-                        {group.formatValue ? group.formatValue(value[1]) : value[1]}
+                        {group.formatValue ? group.formatValue(value[1]) : amountWithComma(value[1])}
                       </Typography>
                     </CardContent>
                   </Card>

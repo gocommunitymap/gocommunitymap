@@ -26,7 +26,6 @@ export const updateRoomDetail = createAsyncThunk(
     if (files?.length > 0) {
       const links = []
       for (let i = 0; i < files.length; i++) {
-        debugger
         const fileName = `room_${i}_${fetCurrentFullTime().toString()}`
         const lastDot = files[i].name.lastIndexOf('.')
         const ext = files[i].name.substring(lastDot + 1)

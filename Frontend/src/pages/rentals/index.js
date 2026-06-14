@@ -38,7 +38,7 @@ const Rental = ({ sectionData, newsData, discoverSectionsData }) => {
       <SeoHead
         title='Properties Rental'
         description='Search thousands of flats and houses rental across the UK. Find your perfect rental property with advanced filters for price, bedrooms, and location.'
-        canonical='https://gocommunitymaptymap.com/rental'
+        canonical='https://gocommunitymaptymap.com/rentals'
       />
       <Grid container>
         <Grid item xs={12} pb={3}>

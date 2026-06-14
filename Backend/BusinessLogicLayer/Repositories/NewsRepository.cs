@@ -1,8 +1,8 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Models;
+using BusinessLogicLayer.Services;
 using DataAccessLayer.Data;
 using DataAccessLayer.Interface;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -16,14 +16,16 @@ namespace BusinessLogicLayer.Repositories
     public class NewsRepository : INewsRepository
     {
         private readonly IDataAccess _db;
-        private readonly IConfiguration _configuration;
+        private readonly IAppSettingsService _appSettingsService;
+        private int? UserCode { get; set; }
         public static string? selectedDatabase = "";
 
-        public NewsRepository(IDataAccess db, IConfiguration configuration)
+        public NewsRepository(IDataAccess db, IAppSettingsService appSettingsService, IJwtExtractService jwtExtractService)
         {
             _db = db;
-            _configuration = configuration;
-            selectedDatabase = _configuration["database"];
+            _appSettingsService = appSettingsService;
+            UserCode = jwtExtractService.GetUserIdFromToken();
+            selectedDatabase = appSettingsService.GetDatabase();
         }
         public object GetNews(News NewsData)
         {
@@ -45,7 +47,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("DISPLAY_TYPE", DbType.String, ParameterDirection.Input, NewsData.DISPLAY_TYPE);
                 dyParam.AddDynamicParams("KEY_TAKEAWAYS", DbType.String, ParameterDirection.Input, NewsData.KEY_TAKEAWAYS);
                 dyParam.AddDynamicParams("LONG_DESCRIPTION", DbType.String, ParameterDirection.Input, NewsData.LONG_DESCRIPTION);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, NewsData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.FETCH.ToString());
                 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
@@ -67,7 +69,7 @@ namespace BusinessLogicLayer.Repositories
                 Parameters dyParam = new Parameters();
                 dyParam.SelectedDB = _db.SelectedDatabase;
                 dyParam.AddDynamicParams("NEWS_ID", DbType.Int32, ParameterDirection.Input, NewsData.NEWS_ID);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, NewsData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.FETCH2.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
@@ -102,7 +104,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("DISPLAY_TYPE", DbType.String, ParameterDirection.Input, NewsData.DISPLAY_TYPE);
                 dyParam.AddDynamicParams("KEY_TAKEAWAYS", DbType.String, ParameterDirection.Input, NewsData.KEY_TAKEAWAYS);
                 dyParam.AddDynamicParams("LONG_DESCRIPTION", DbType.String, ParameterDirection.Input, NewsData.LONG_DESCRIPTION);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, NewsData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.INSERT.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
@@ -134,7 +136,7 @@ namespace BusinessLogicLayer.Repositories
                 dyParam.AddDynamicParams("DISPLAY_TYPE", DbType.String, ParameterDirection.Input, NewsData.DISPLAY_TYPE);
                 dyParam.AddDynamicParams("KEY_TAKEAWAYS", DbType.String, ParameterDirection.Input, NewsData.KEY_TAKEAWAYS);
                 dyParam.AddDynamicParams("LONG_DESCRIPTION", DbType.String, ParameterDirection.Input, NewsData.LONG_DESCRIPTION);
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, NewsData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.UPDATE.ToString());
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
 
@@ -156,7 +158,7 @@ namespace BusinessLogicLayer.Repositories
 
                 dyParam.AddDynamicParams("NEWS_ID", DbType.Int32, ParameterDirection.Input, NewsData.NEWS_ID);
 
-                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, NewsData.USER);
+                dyParam.AddDynamicParams("USER", DbType.Int32, ParameterDirection.Input, UserCode);
                 dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.DELETE.ToString());
 
                 if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");

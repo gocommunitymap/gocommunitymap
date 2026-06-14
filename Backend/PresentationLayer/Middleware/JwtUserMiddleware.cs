@@ -1,18 +1,22 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using BusinessLogicLayer.Interfaces;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace PresentationLayer.Middleware
 {
     public class JwtUserMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly ILogService _logService;
 
-        public JwtUserMiddleware(RequestDelegate next)
+        public JwtUserMiddleware(RequestDelegate next, ILogService logService)
         {
             _next = next;
+            _logService = logService;
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
+            _logService.Add("System", "JwtUserMiddleware", $"Processing request: {context.Request.Method} {context.Request.Path}");
             var authHeader = context.Request.Headers["Authorization"].ToString();
 
             if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
@@ -39,10 +43,10 @@ namespace PresentationLayer.Middleware
                 }
                 catch
                 {
+                    _logService.Add("System", "JwtUserMiddleware", "Invalid JWT token");
                     // ignore invalid token
                 }
             }
-
             await _next(context);
         }
     }

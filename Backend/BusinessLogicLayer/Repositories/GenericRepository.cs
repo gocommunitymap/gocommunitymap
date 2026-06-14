@@ -3,7 +3,6 @@ using Dapper;
 using DataAccessLayer.Data;
 using DataAccessLayer.DBObjects;
 using DataAccessLayer.Interface;
-using Microsoft.Extensions.Configuration;
 using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
@@ -18,14 +17,14 @@ namespace BusinessLogicLayer.Repositories
     public class GenericRepository : IGenericRepository
     {
         private readonly IDataAccess _db;
-        private readonly IConfiguration _configuration;
+        private readonly IAppSettingsService _appSettingsService;
         public static string? selectedDatabase = "";
 
-        public GenericRepository(IDataAccess db, IConfiguration configuration)
+        public GenericRepository(IDataAccess db, IAppSettingsService appSettingsService)
         {
             _db = db;
-            _configuration = configuration;
-            selectedDatabase = _configuration["database"];
+            _appSettingsService = appSettingsService;
+            selectedDatabase = appSettingsService.GetDatabase();
 
         }
         public object ExecuteProc(string sp_name, String json)

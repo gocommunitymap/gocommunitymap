@@ -1,9 +1,21 @@
-import { Box, Card, CardContent, CircularProgress, Stack, Typography } from '@mui/material'
+import {
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  CardActions,
+  CardContent,
+  CircularProgress,
+  Stack,
+  Typography
+} from '@mui/material'
 import { Circle, GoogleMap, InfoWindow, Marker, OverlayView, useJsApiLoader } from '@react-google-maps/api'
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import CompanyLogo from 'src/@core/components/company-logo'
 import IconifyIcon from 'src/@core/components/icon'
 import { defaultPageFont } from 'src/@core/utils'
+import { GoogleMapProvider } from 'src/@core/context/MapContext'
 
 const DEFAULT_PROPERTY_IMAGE = '/images/logo.png'
 const USER_RADIUS_METERS = 50000
@@ -15,15 +27,15 @@ const mapContainerStyle = {
 }
 
 const defaultCenter = {
-  lat: 35.6762,
-  lng: 139.6503
+  lat: null,
+  lng: null
 }
 
 const PropertyInfoWindow = ({ property, onClose }) => {
   return (
     <InfoWindow position={{ lat: property.lat, lng: property.lng }} onCloseClick={onClose}>
-      <Card elevation={0} sx={{ minWidth: 250, maxWidth: 300 }}>
-        <Box sx={{ position: 'relative', height: 150 }}>
+      <Card elevation={0} sx={{ p: 0, minWidth: 250, maxWidth: 300 }}>
+        <Box sx={{ position: 'relative', height: 130 }}>
           <img
             src={property.image || DEFAULT_PROPERTY_IMAGE}
             alt={property.title}
@@ -35,12 +47,10 @@ const PropertyInfoWindow = ({ property, onClose }) => {
           />
         </Box>
         <CardContent sx={{ p: 2 }}>
-          <Typography
-            sx={{ fontSize: '1.1rem', fontWeight: 700, color: '#0b1730', fontFamily: defaultPageFont, mb: 0.5 }}
-          >
+          <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#0b1730', fontFamily: defaultPageFont, mb: 0.5 }}>
             {property.title}
           </Typography>
-          <Typography sx={{ color: '#6f7f98', fontFamily: defaultPageFont, fontSize: '0.85rem', mb: 1.5 }}>
+          <Typography sx={{ color: '#6f7f98', fontFamily: defaultPageFont, fontSize: 9, mb: 1.5 }}>
             {property.district}
           </Typography>
 
@@ -71,13 +81,27 @@ const PropertyInfoWindow = ({ property, onClose }) => {
                 {property.rating}
               </Typography>
             </Stack>
-            <Typography sx={{ color: '#0b1730', fontFamily: defaultPageFont, fontWeight: 800, fontSize: '1.3rem' }}>
+            <Typography sx={{ color: '#0b1730', fontFamily: defaultPageFont, fontWeight: 800, fontSize: '0.8rem' }}>
               ${property.price}
               <Typography component='span' sx={{ ml: 0.5, color: '#8d9bb1', fontWeight: 600, fontSize: '0.7rem' }}>
                 / night
               </Typography>
             </Typography>
           </Stack>
+          <Link href={property.detailPath}>
+            <Button
+              size='small'
+              sx={{
+                width: '100%',
+                color: '#10B981',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                textTransform: 'none'
+              }}
+            >
+              View Details
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </InfoWindow>
@@ -87,14 +111,8 @@ const PropertyInfoWindow = ({ property, onClose }) => {
 const LandingMapView = ({ properties = [] }) => {
   const [selectedProperty, setSelectedProperty] = useState(null)
   const [map, setMap] = useState(null)
+  const [mapLoaded, setMapLoaded] = useState(false)
   const [userLocation, setUserLocation] = useState(null)
-
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY
-
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: apiKey || 'dummy-key' // Provide dummy key to prevent hook error
-  })
 
   useEffect(() => {
     if (typeof window === 'undefined' || !navigator?.geolocation) return
@@ -127,7 +145,7 @@ const LandingMapView = ({ properties = [] }) => {
 
   const focusRadiusOnLocation = useCallback(
     center => {
-      if (!map || !isLoaded || !center?.lat || !center?.lng) return
+      if (!map || !mapLoaded || !center?.lat || !center?.lng) return
 
       const bounds = new window.google.maps.LatLngBounds()
       const radiusCircle = new window.google.maps.Circle({ center, radius: USER_RADIUS_METERS })
@@ -143,15 +161,11 @@ const LandingMapView = ({ properties = [] }) => {
       map.setCenter(center)
       map.setZoom(10)
     },
-    [isLoaded, map]
+    [mapLoaded, map]
   )
 
-  if (loadError) {
-    console.error('Google Maps Load Error:', loadError)
-  }
-
   useEffect(() => {
-    if (!map || !isLoaded) return
+    if (!map || !mapLoaded) return
 
     if (userLocation) {
       const bounds = new window.google.maps.LatLngBounds()
@@ -185,107 +199,7 @@ const LandingMapView = ({ properties = [] }) => {
       }
     })
     map.fitBounds(bounds)
-  }, [isLoaded, map, properties, userLocation])
-
-  // Check if API key is missing
-  if (!apiKey) {
-    return (
-      <Box
-        sx={{
-          height: '700px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: '#f8f9fa',
-          borderRadius: 4,
-          flexDirection: 'column',
-          gap: 2,
-          p: 4,
-          textAlign: 'center'
-        }}
-      >
-        <IconifyIcon icon='tabler:key-off' fontSize='3rem' color='#f59e0b' />
-        <Typography sx={{ color: '#f59e0b', fontWeight: 700, fontSize: '1.2rem' }}>
-          Google Maps API Key Missing
-        </Typography>
-        <Typography sx={{ color: '#6b7280', fontSize: '0.875rem', maxWidth: 500 }}>
-          The environment variable NEXT_PUBLIC_GOOGLE_MAP_KEY is not set
-        </Typography>
-        <Box sx={{ mt: 2, p: 2, bgcolor: '#fef3c7', borderRadius: 2, maxWidth: 600 }}>
-          <Typography sx={{ color: '#92400e', fontSize: '0.8rem', fontWeight: 600, mb: 1 }}>To fix this:</Typography>
-          <Typography component='div' sx={{ color: '#92400e', fontSize: '0.75rem', textAlign: 'left' }}>
-            1. Add NEXT_PUBLIC_GOOGLE_MAP_KEY to your .env file
-            <br />
-            2. Get an API key from Google Cloud Console
-            <br />
-            3. Enable "Maps JavaScript API"
-            <br />
-            4. Restart your development server
-          </Typography>
-        </Box>
-      </Box>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <Box
-        sx={{
-          height: '700px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: '#f8f9fa',
-          borderRadius: 4,
-          flexDirection: 'column',
-          gap: 2,
-          p: 4,
-          textAlign: 'center'
-        }}
-      >
-        <IconifyIcon icon='tabler:alert-circle' fontSize='3rem' color='#ef4444' />
-        <Typography sx={{ color: '#ef4444', fontWeight: 700, fontSize: '1.2rem' }}>
-          Error Loading Google Maps
-        </Typography>
-        <Typography sx={{ color: '#6b7280', fontSize: '0.875rem', maxWidth: 500 }}>
-          {loadError.message || 'Failed to load Google Maps'}
-        </Typography>
-        <Box sx={{ mt: 2, p: 2, bgcolor: '#fff3cd', borderRadius: 2, maxWidth: 600 }}>
-          <Typography sx={{ color: '#856404', fontSize: '0.8rem', fontWeight: 600, mb: 1 }}>
-            Common Solutions:
-          </Typography>
-          <Typography component='div' sx={{ color: '#856404', fontSize: '0.75rem', textAlign: 'left' }}>
-            1. Check if NEXT_PUBLIC_GOOGLE_MAP_KEY is set in .env file
-            <br />
-            2. Enable "Maps JavaScript API" in Google Cloud Console
-            <br />
-            3. Enable billing for your Google Cloud Project
-            <br />
-            4. Check API key restrictions (HTTP referrers)
-            <br />
-            5. Restart your development server after changing .env
-          </Typography>
-        </Box>
-      </Box>
-    )
-  }
-
-  if (!isLoaded) {
-    return (
-      <Box
-        sx={{
-          height: '700px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: '#f8f9fa',
-          borderRadius: 4
-        }}
-      >
-        <CircularProgress sx={{ color: '#10B981' }} />
-      </Box>
-    )
-  }
+  }, [mapLoaded, map, properties, userLocation])
 
   if ((!properties || properties.length === 0) && !userLocation) {
     return (
@@ -310,22 +224,26 @@ const LandingMapView = ({ properties = [] }) => {
   }
 
   return (
-    <GoogleMap
-      mapContainerStyle={mapContainerStyle}
-      center={
-        userLocation || (properties.length > 0 ? { lat: properties[0].lat, lng: properties[0].lng } : defaultCenter)
-      }
-      zoom={userLocation ? 10 : properties.length === 1 ? 14 : 10}
-      onLoad={onLoad}
-      onUnmount={onUnmount}
-      options={{
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          }
-        ]
+    <GoogleMapProvider
+      mapLoaded={mapLoaded}
+      setMapLoaded={setMapLoaded}
+      mapProps={{
+        mapContainerStyle,
+        center:
+          userLocation || (properties.length > 0 ? { lat: properties[0].lat, lng: properties[0].lng } : defaultCenter),
+
+        zoom: userLocation ? 10 : properties.length === 1 ? 14 : 10,
+        onLoad,
+        onUnmount,
+        options: {
+          styles: [
+            {
+              featureType: 'poi',
+              elementType: 'labels',
+              stylers: [{ visibility: 'off' }]
+            }
+          ]
+        }
       }}
     >
       {userLocation ? (
@@ -452,7 +370,7 @@ const LandingMapView = ({ properties = [] }) => {
       ))}
 
       {selectedProperty && <PropertyInfoWindow property={selectedProperty} onClose={() => setSelectedProperty(null)} />}
-    </GoogleMap>
+    </GoogleMapProvider>
   )
 }
 

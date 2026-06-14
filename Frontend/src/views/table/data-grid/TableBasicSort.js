@@ -46,7 +46,7 @@ const statusObj = {
 
 const TableSort = () => {
   // ** States
-  const [pageSize, setPageSize] = useState(7)
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 7 })
   const [isNameSortable, setIsNameSortable] = useState(true)
 
   const columns = [
@@ -149,9 +149,9 @@ const TableSort = () => {
         autoHeight
         rows={rows}
         columns={columns}
-        pageSize={pageSize}
         pageSizeOptions={[7, 10, 25, 50]}
-        onPageSizeChange={newPageSize => setPageSize(newPageSize)}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
       />
     </Card>
   )

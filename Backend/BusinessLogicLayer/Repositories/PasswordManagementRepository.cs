@@ -17,106 +17,97 @@ using static BusinessLogicLayer.Config.DatabaseObjects;
 using System.Data;
 using DataAccessLayer.Interface;
 using DataAccessLayer.Models;
+using System.Resources;
 
 
 namespace BusinessLogicLayer.Repositories
 {
     public class PasswordManagementRepository : IPasswordManagementRepository
     {
-        private readonly IConfiguration _configuration;
+
+        private readonly IMailRepository _mailRepository;
+        private readonly ILogService _logService;
         private readonly IDataAccess _db;
         private readonly IEncryptionRepository _iEncryptionRepository;
+        private readonly IIPAddressRepository _iIPAddressRepository;
+        private readonly IEmailTemplateSettingsRepository _emailTemplateSettings;
         public static string? selectedDatabase = "";
-        public readonly IIPAddressRepository _iIPAddressRepository;
-        public PasswordManagementRepository(IConfiguration configuration, IDataAccess db, IIPAddressRepository iIPAddressRepository, IEncryptionRepository iEncryptionRepository)
+        public readonly MailSettings mailSettings;
+        public PasswordManagementRepository(IDataAccess db, IIPAddressRepository iIPAddressRepository, IEncryptionRepository iEncryptionRepository, IAppSettingsService appSettingsService, IMailRepository mailRepository, ILogService logService, IEmailTemplateSettingsRepository emailTemplateSettings)
         {
             _db = db;
-            _configuration = configuration;
-            selectedDatabase = _configuration["database"];
             _iIPAddressRepository = iIPAddressRepository;
             _iEncryptionRepository = iEncryptionRepository;
+            _mailRepository = mailRepository;
+            _logService = logService;
+            _emailTemplateSettings = emailTemplateSettings;
+            selectedDatabase = appSettingsService.GetDatabase();
+            mailSettings = appSettingsService.GetMailSettings();
         }
 
         public object ForgotPassword(string email)
         {
             try
             {
-                MailData mailData = new MailData();
-                using (MimeMessage emailMessage = new MimeMessage())
+                _logService.Add("ForgotPassword", "Start", "1");
+                var hostDetail = (_iIPAddressRepository.GetLocalIPAddress() as string[]);
+                //var hostDetail = new string[] { "NA", "NA", "NA" };
+                _logService.Add("hostDetail", hostDetail.Length.ToString(), "2");
+                string sp_name = Procedures.SP_MANAGE_PASSWORD.ToString();
+                Parameters dyParam = new Parameters();
+                dyParam.SelectedDB = _db.SelectedDatabase;
+                dyParam.AddDynamicParams("EMAIL", DbType.String, ParameterDirection.Input, email);
+                dyParam.AddDynamicParams("IP_ADDRESS", DbType.String, ParameterDirection.Input, hostDetail[0]);
+                dyParam.AddDynamicParams("HOST_NAME", DbType.String, ParameterDirection.Input, hostDetail[2]);
+                dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.ACTION1.ToString());
+                if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
+                _logService.Add("Update", "Params", "3");
+                var response = _db.ExecuteProcDT(sp_name, dyParam);
+                _logService.Add("Response", "Received", "4");
+                if (response != null && response.Count > 0)
                 {
-                    MailSettings objMailSettings = new MailSettings();
-                    objMailSettings.Server = _configuration["MailSettings:Server"];
-                    objMailSettings.Port = int.Parse(_configuration["MailSettings:Port"]);
-                    objMailSettings.SenderName = _configuration["MailSettings:SenderName"];
-                    objMailSettings.SenderEmail = _configuration["MailSettings:SenderEmail"];
-                    objMailSettings.UserName = _configuration["MailSettings:UserName"];
-                    objMailSettings.Password = _configuration["MailSettings:Password"];
-
-                    var hostDetail = (_iIPAddressRepository.GetLocalIPAddress() as string[]);
-
-
-                    string sp_name = Procedures.SP_MANAGE_PASSWORD.ToString();
-                    Parameters dyParam = new Parameters();
-                    dyParam.SelectedDB = _db.SelectedDatabase;
-                    dyParam.AddDynamicParams("EMAIL", DbType.String, ParameterDirection.Input, email);
-                    dyParam.AddDynamicParams("IP_ADDRESS", DbType.String, ParameterDirection.Input, hostDetail[0]);
-                    dyParam.AddDynamicParams("HOST_NAME", DbType.String, ParameterDirection.Input, hostDetail[2]);
-                    dyParam.AddDynamicParams("ACTION", DbType.String, ParameterDirection.Input, Actions.ACTION1.ToString());
-                    if (selectedDatabase == "ORACLE") dyParam.AddRefCursor("REFCURSOR");
-
-                    var response = _db.ExecuteProcDT(sp_name, dyParam);
-
-                    if (response != null && response.Count > 0)
+                    RESET_PASSWORD _RESET_PASSWORD = new RESET_PASSWORD();
+                    foreach (var row in response)
                     {
-                        RESET_PASSWORD _RESET_PASSWORD = new RESET_PASSWORD();
-                        foreach (var row in response)
+                        _RESET_PASSWORD.ID = row.ID;
+                        _RESET_PASSWORD.IP_ADDRESS = row.IP_ADDRESS;
+                        _RESET_PASSWORD.HOST_NAME = row.HOST_NAME;
+                        _RESET_PASSWORD.REQUEST_EXPIRY = row.REQUEST_EXPIRY;
+                        _RESET_PASSWORD.REQUEST_DATE = row.REQUEST_DATE;
+                        _RESET_PASSWORD.ACTIVE = row.ACTIVE;
+                        _RESET_PASSWORD.USER_CODE = row.USER_CODE;
+                        _RESET_PASSWORD.USER_NAME = row.USER_NAME;
+                    }
+                    if (mailSettings.Disabled == "N")
+                    {
+                        try
                         {
-                            _RESET_PASSWORD.ID = row.ID;
-                            _RESET_PASSWORD.IP_ADDRESS = row.IP_ADDRESS;
-                            _RESET_PASSWORD.HOST_NAME = row.HOST_NAME;
-                            _RESET_PASSWORD.REQUEST_EXPIRY = row.REQUEST_EXPIRY;
-                            _RESET_PASSWORD.REQUEST_DATE = row.REQUEST_DATE;
-                            _RESET_PASSWORD.ACTIVE = row.ACTIVE;
-                            _RESET_PASSWORD.USER_CODE = row.USER_CODE;
-                            _RESET_PASSWORD.USER_NAME = row.USER_NAME;
+                            String emailBody = "";
+                            EmailTemplateSettings _emailTemplate = _emailTemplateSettings.GetEmailTemplateSettings("reset-password");
+                            using (StreamReader SourceReader = System.IO.File.OpenText(_emailTemplate.TEMPLATE_PATH))
+                            {
+                                string resetLink = _emailTemplate.ADDITIONAL_VALUE_1 + "a=" + _iEncryptionRepository.Encrypt(_RESET_PASSWORD.ID.ToString());
 
+                                emailBody = SourceReader.ReadToEnd().Replace("[name]", _RESET_PASSWORD.USER_NAME).Replace("[email]", email).Replace("[reset-link]", resetLink).Replace("[sender-name]", mailSettings.SenderName);
+                            }
+                            MailRequest mailRequest = new MailRequest()
+                            {
+                                ToEmail = email,
+                                ToName = _RESET_PASSWORD.USER_NAME,
+                                Body = emailBody,
+                                Subject = _emailTemplate.EMAIL_SUBJECT
+                            };
+
+                            _mailRepository.SendEmail(mailRequest);
+                            return true;
                         }
-
-                        MailboxAddress emailFrom = new MailboxAddress(objMailSettings.SenderName, objMailSettings.SenderEmail);
-                        emailMessage.From.Add(emailFrom);
-                        MailboxAddress emailTo = new MailboxAddress(_RESET_PASSWORD.USER_NAME, email);
-                        emailMessage.To.Add(emailTo);
-
-                        //emailMessage.Cc.Add(new MailboxAddress("Cc Receiver", "cc@example.com"));
-                        //emailMessage.Bcc.Add(new MailboxAddress("Bcc Receiver", "bcc@example.com"));
-
-                        emailMessage.Subject = _configuration["EmailTemplete:ResetPassword_EmailSubject"];
-
-                        BodyBuilder emailBodyBuilder = new BodyBuilder();
-                        //emailBodyBuilder.HtmlBody = mailData.EmailBody;
-
-                        //emailMessage.Body = emailBodyBuilder.ToMessageBody();
-
-                        using (StreamReader SourceReader = System.IO.File.OpenText(_configuration["EmailTemplete:ResetPasswordPath"]))
+                        catch (Exception ex)
                         {
-                            string resetLink = _configuration["EmailTemplete:ResetLink"] + "a=" + _iEncryptionRepository.Encrypt(_RESET_PASSWORD.ID.ToString());
-                            emailBodyBuilder.HtmlBody = SourceReader.ReadToEnd().Replace("[name]", _RESET_PASSWORD.USER_NAME).Replace("[email]", email).Replace("[reset-link]", resetLink).Replace("[sender-name]", objMailSettings.SenderName);
-                        }
-
-                        emailMessage.Body = emailBodyBuilder.ToMessageBody();
-
-
-                        //this is the SmtpClient from the Mailkit.Net.Smtp namespace, not the System.Net.Mail one
-                        using (SmtpClient mailClient = new SmtpClient())
-                        {
-                            mailClient.Connect(objMailSettings.Server, objMailSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
-                            mailClient.Authenticate(objMailSettings.UserName, objMailSettings.Password);
-                            mailClient.Send(emailMessage);
-                            mailClient.Disconnect(true);
+                            _logService.Add("Password Reset", "Send Email", ex.Message);
+                            return false;
                         }
                     }
                 }
-
                 return new { message = "Email Send Successfully!" };
             }
             catch (Exception ex)
@@ -169,7 +160,7 @@ namespace BusinessLogicLayer.Repositories
             {
                 string ID = _iEncryptionRepository.Decrypt(key);
                 var hostDetail = (_iIPAddressRepository.GetLocalIPAddress() as string[]);
-
+                object returnObj = new object();
                 string sp_name = Procedures.SP_MANAGE_PASSWORD.ToString();
                 Parameters dyParam = new Parameters();
                 dyParam.SelectedDB = _db.SelectedDatabase;
@@ -198,54 +189,39 @@ namespace BusinessLogicLayer.Repositories
                         _RESET_PASSWORD.USER_NAME = row.USER_NAME;
 
                     }
-
-                    using (MimeMessage emailMessage = new MimeMessage())
+                    if (mailSettings.Disabled == "N")
                     {
-
-                        MailSettings objMailSettings = new MailSettings();
-                        objMailSettings.Server = _configuration["MailSettings:Server"];
-                        objMailSettings.Port = int.Parse(_configuration["MailSettings:Port"]);
-                        objMailSettings.SenderName = _configuration["MailSettings:SenderName"];
-                        objMailSettings.SenderEmail = _configuration["MailSettings:SenderEmail"];
-                        objMailSettings.UserName = _configuration["MailSettings:UserName"];
-                        objMailSettings.Password = _configuration["MailSettings:Password"];
-
-                        MailboxAddress emailFrom = new MailboxAddress(objMailSettings.SenderName, objMailSettings.SenderEmail);
-                        emailMessage.From.Add(emailFrom);
-                        MailboxAddress emailTo = new MailboxAddress(_RESET_PASSWORD.USER_NAME, _RESET_PASSWORD.EMAIL);
-                        emailMessage.To.Add(emailTo);
-
-                        //emailMessage.Cc.Add(new MailboxAddress("Cc Receiver", "cc@example.com"));
-                        //emailMessage.Bcc.Add(new MailboxAddress("Bcc Receiver", "bcc@example.com"));
-
-                        emailMessage.Subject = _configuration["EmailTemplete:ResetPassword_EmailSubject"];
-
-                        BodyBuilder emailBodyBuilder = new BodyBuilder();
-                        //emailBodyBuilder.HtmlBody = mailData.EmailBody;
-
-                        //emailMessage.Body = emailBodyBuilder.ToMessageBody();
-
-                        using (StreamReader SourceReader = System.IO.File.OpenText(_configuration["EmailTemplete:ResetSuccessPath"]))
+                        try
                         {
-                            string resetLink = _configuration["EmailTemplete:ResetLink"] + "a=" + _iEncryptionRepository.Encrypt(_RESET_PASSWORD.ID.ToString());
-                            emailBodyBuilder.HtmlBody = SourceReader.ReadToEnd().Replace("[name]", _RESET_PASSWORD.USER_NAME).Replace("[sender-name]", objMailSettings.SenderName);
+                            String emailBody = "";
+                            EmailTemplateSettings _emailTemplate = _emailTemplateSettings.GetEmailTemplateSettings("reset-password-success");
+
+                            using (StreamReader SourceReader = System.IO.File.OpenText(_emailTemplate.TEMPLATE_PATH))
+                            {
+                                emailBody = SourceReader.ReadToEnd().Replace("[name]", _RESET_PASSWORD.USER_NAME).Replace("[sender-name]", mailSettings.SenderName);
+                            }
+
+                            MailRequest mailRequest = new MailRequest()
+                            {
+                                ToEmail = _RESET_PASSWORD.EMAIL,
+                                ToName = _RESET_PASSWORD.USER_NAME,
+                                Body = emailBody,
+                                Subject = _emailTemplate.EMAIL_SUBJECT
+                            };
+
+                            _mailRepository.SendEmail(mailRequest);
+                            returnObj = new { message = "Email Send Successfully!" };
                         }
-
-                        emailMessage.Body = emailBodyBuilder.ToMessageBody();
-
-
-                        //this is the SmtpClient from the Mailkit.Net.Smtp namespace, not the System.Net.Mail one
-                        using (SmtpClient mailClient = new SmtpClient())
+                        catch (Exception ex)
                         {
-                            mailClient.Connect(objMailSettings.Server, objMailSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
-                            mailClient.Authenticate(objMailSettings.UserName, objMailSettings.Password);
-                            mailClient.Send(emailMessage);
-                            mailClient.Disconnect(true);
+                            _logService.Add("Password Reset", "Send Email", ex.Message);
+                            returnObj = new { error = "Email Sending failed!" };
                         }
                     }
                 }
-                return new { message = "Email Send Successfully!" };
+                return returnObj;
             }
+
             catch (Exception ex)
             {
                 throw;

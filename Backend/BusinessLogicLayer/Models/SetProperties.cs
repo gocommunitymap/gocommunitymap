@@ -30,9 +30,10 @@ namespace BusinessLogicLayer.Models
         public int? COUNCIL_TAX_BAND_ID { get; set; }
         public bool? ISEXEMPT { get; set; }
         public decimal? PRICE { get; set; }
+        public decimal? MAX_GUESTS { get; set; }
         public int? PRICE_MODIFIER_ID { get; set; }
-        public decimal? LETTINGS_DEPOSIT_PAYABLE { get; set; }
-        public string? LETTING_ARRANGEMENTS { get; set; }
+        public int? LETTINGS_DEPOSIT_PAYABLE { get; set; }
+        public int? LETTING_ARRANGEMENTS { get; set; }
         public int? FEE_APPLY_ID { get; set; }
         public int? FURNISHED_ID { get; set; }
         public int? RENTAL_FREQUENCY_ID { get; set; }
@@ -65,6 +66,10 @@ namespace BusinessLogicLayer.Models
         public string? AGENT_NAME { get; set; }
         public string? AGENT_BIO { get; set; }
         public string? IMPORTANT_INFO { get; set; }
+        public string? COUNTRY { get; set; }
+        public string? PROVINCE { get; set; }
+        public string? CITY { get; set; }
+        public int? PROPERTY_QUANTITY { get; set; }
         public List<SetPictureLinks>? PICTURE_LINKS { get; set; }
         public List<SetPictureLinks>? CONTENT_TYPE_PICTURE_LINKS { get; set; }
         public List<SetPropertyFeatures>? PROPERTY_FEATURES { get; set; }

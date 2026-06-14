@@ -3,7 +3,8 @@ import {
   getGlobalParametersAPI,
   createGlobalParametersAPI,
   deleteGlobalParametersAPI,
-  updateGlobalParametersAPI
+  updateGlobalParametersAPI,
+  listingTypes
 } from 'src/configs'
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { GLOBAL_PARAMETER_TYPES } from 'src/@core/utils'
@@ -14,7 +15,13 @@ const ALLOWED = true
 export const getPropertyTypes = createAsyncThunk(API_URL.GET_GLOBAL_PARAMETERS, async data => {
   const response = await getGlobalParametersAPI({ ...data, TYPE_CODE, ALLOWED })
 
-  return response?.data
+  const _response = response?.data?.map(item => ({
+    ...item,
+    LISTING_TYPE:
+      Object.values(listingTypes).find(listing => listing.LISTING_TYPE_ID == item.PARAMETER_CODE_4)?.LABEL || ''
+  }))
+
+  return _response || []
 })
 
 export const updatePropertyTypes = createAsyncThunk(

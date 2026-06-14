@@ -20,11 +20,12 @@ const defaultProvider = {
   setUser: () => null,
   setLoading: () => Boolean,
   login: () => Promise.resolve(),
-  logout: () => Promise.resolve()
+  logout: () => Promise.resolve(),
+  logoutNoRedirect: () => Promise.resolve()
 }
 const AuthContext = createContext(defaultProvider)
 
-const AuthProvider = ({ children }) => {
+const AuthProvider = ({ children, guestGuard }) => {
   // ** States
   const [user, setUser] = useState(defaultProvider.user)
   const [loading, setLoading] = useState(defaultProvider.loading)
@@ -33,11 +34,13 @@ const AuthProvider = ({ children }) => {
   // ** Hooks
   const router = useRouter()
 
-  const killSession = () => {
+  const killSession = (noRedirect = false) => {
     setUser(null)
     window.localStorage.removeItem('userData')
     deleteAllCookies()
-    router.push('/home')
+    if (!noRedirect) {
+      router.push('/home')
+    }
   }
 
   const isTokenExpired = token => {
@@ -97,9 +100,10 @@ const AuthProvider = ({ children }) => {
           }
         })
         .catch(error => {
-          toast.error('Session has been expired, Please Relogin', {
+          toast.error('Session has been expired, Please Re-login', {
             position: 'top-center',
-            style: { padding: 10, fontSize: 24, minWidth: 200 },
+            icon: '⚠️',
+            style: { padding: 10, fontSize: 12, minWidth: 200 },
             duration: 5000
           })
           setLoading(false)
@@ -134,6 +138,7 @@ const AuthProvider = ({ children }) => {
           usercode: response.data.usercode,
           fullName: response.data.user_name,
           email: response.data.email,
+          contactNo: response.data.contact_no,
           userType: response.data.user_type,
           roleName: response.data.role_name,
           token: response.data.token,
@@ -164,8 +169,9 @@ const AuthProvider = ({ children }) => {
         if (err.code === 'ECONNABORTED') {
           toast.error('Connection Timeout, Server Not Responding ')
         }
-
-        handleLogout()
+        if (err?.response?.data?.code !== -1) {
+          handleLogout()
+        }
       })
   }
 
@@ -186,13 +192,31 @@ const AuthProvider = ({ children }) => {
     }
   }
 
+  const handleLogoutNoRedirect = () => {
+    if (user) {
+      axios
+        .post(API_URL.LOGOUT, {
+          email: user.email,
+          token: user.token,
+          refreshToken: user.refreshToken
+        })
+        .then(async response => {
+          killSession(true)
+        })
+        .catch(error => {})
+    } else {
+      killSession(true)
+    }
+  }
+
   const values = {
     user,
     loading,
     setUser,
     setLoading,
     login: handleLogin,
-    logout: handleLogout
+    logout: handleLogout,
+    logoutNoRedirect: handleLogoutNoRedirect
   }
 
   return <AuthContext.Provider value={values}>{children}</AuthContext.Provider>

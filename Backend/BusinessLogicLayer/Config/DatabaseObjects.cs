@@ -30,8 +30,10 @@ namespace BusinessLogicLayer.Config
             SP_GET_PLACES,
             SP_SET_ROOMS,
             SP_PAYMENT,
-            SP_HOTEL_BOOKINGS
+            SP_HOTEL_BOOKINGS,
+            SP_GET_EMAILCONFIG,
+            SP_SET_COMMUNITIES,
+            SP_BOOKING_CALENDAR
         }
     }
-
 }

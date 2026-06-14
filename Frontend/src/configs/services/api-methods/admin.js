@@ -12,8 +12,11 @@ export const getAgentUserAPI = params => getRequest(API_URL.GET_AGENT_USER, { da
 
 export const createUserAPI = params => postRequest(API_URL.CREATE_USER, { data: updateParams(params) })
 
-export const registerUserAPI = params =>
-  postRequest(API_URL.CREATE_USER, { data: params, config: { toast: false, isGuest: true } })
+export const registerUserAPI = ({ data, config }) =>
+  postRequest(API_URL.CREATE_USER, {
+    data,
+    config
+  })
 
 export const updateUserAPI = params => postRequest(API_URL.UPDATE_USER, { data: updateParams(params) })
 

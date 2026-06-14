@@ -7,6 +7,8 @@
 const themeConfig = {
   // ** Layout Configs
   templateName: 'Go Community Map' /* App Name */,
+  templateName2: 'GoCommunityMap' /* App Name */,
+  templateNameSlogan: 'Find Your Community' /* App Slogan */,
   layout: 'horizontal' /* vertical | horizontal */,
   mode: 'light' /* light | dark | semi-dark /*! Note: semi-dark value will only work for Vertical Layout */,
   direction: 'ltr' /* ltr | rtl */,

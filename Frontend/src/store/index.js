@@ -28,7 +28,10 @@ import usingPlanning from './website/using-planning'
 import featureType from './website/feature-type'
 import propertySetupHotels from './website/property-setup-hotels'
 import propertySetupRental from './website/property-setup-rentals'
+import productSetup from './website/product-setup'
 import rentalFrequency from './website/rental-frequency'
+import lettingArrangements from './website/letting-arrangements'
+import lettingsDeposit from './website/lettings-deposit'
 import feeApply from './website/fee-apply'
 import furnished from './website/furnished'
 
@@ -44,6 +47,8 @@ import propertyRules from './website/property-rules'
 import propertyFaq from './website/property-faq'
 import roomFaq from './website/room-faq'
 import roomDetail from './website/room-detail'
+import communityRegions from './website/community-regions'
+import communities from './website/communities'
 
 export * from './navigation/vertical'
 
@@ -97,6 +102,8 @@ export * from './website/property-setup-hotels'
 
 export * from './website/property-setup-rentals'
 
+export * from './website/product-setup'
+
 export * from './website/property-types'
 
 export * from './guest/property/hotels'
@@ -104,6 +111,10 @@ export * from './guest/property/hotels'
 export * from './guest/property/rental'
 
 export * from './website/rental-frequency'
+
+export * from './website/letting-arrangements'
+
+export * from './website/lettings-deposit'
 
 export * from './website/fee-apply'
 
@@ -130,6 +141,10 @@ export * from './website/property-faq'
 export * from './website/room-faq'
 
 export * from './website/room-detail'
+
+export * from './website/community-regions'
+
+export * from './website/communities'
 
 export const store = configureStore({
   reducer: {
@@ -160,7 +175,10 @@ export const store = configureStore({
     propertyTypes,
     propertySetupHotels,
     propertySetupRental,
+    productSetup,
     rentalFrequency,
+    lettingArrangements,
+    lettingsDeposit,
     feeApply,
     furnished,
     roomType,
@@ -173,7 +191,9 @@ export const store = configureStore({
     propertyRules,
     propertyFaq,
     roomFaq,
-    roomDetail
+    roomDetail,
+    communityRegions,
+    communities
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({

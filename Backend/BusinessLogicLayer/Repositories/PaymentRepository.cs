@@ -16,7 +16,7 @@ namespace BusinessLogicLayer.Repositories
 {
     public class PaymentRepository : IPaymentRepository
     {
-        public int? UserCode { get; set; }
+        private int? UserCode { get; set; }
         private readonly IDataAccess _db;
         public PaymentRepository(IDataAccess db, IJwtExtractService jwtExtractService)
         {

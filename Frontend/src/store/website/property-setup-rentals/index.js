@@ -6,13 +6,14 @@ import {
   deletePropertySetupRentalAPI,
   fileUpload,
   updateFileAPI,
-  deleteFileAPI
+  deleteFileAPI,
+  getPropertySetupRentalsSetupListAPI
 } from 'src/configs'
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { FILE_DIRECTORIES, fetCurrentFullTime } from 'src/@core/utils'
 
 export const getPropertySetupRental = createAsyncThunk(API_URL.GET_PROPERTY_SETUP, async data => {
-  const response = await getPropertySetupRentalAPI(data)
+  const response = await getPropertySetupRentalsSetupListAPI(data)
 
   return response?.data
 })

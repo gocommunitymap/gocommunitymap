@@ -46,6 +46,12 @@ export const getPropertiesAPI = params =>
     config: { useBaseURL: true, isGuest: true }
   })
 
+export const getPropertiesForMapAPI = params =>
+  getRequest(API_URL.GET_PROPERTIES_FOR_MAP, {
+    data: { ...staticParams(params), active: true },
+    config: { useBaseURL: true, isGuest: true }
+  })
+
 export const getPropertiesFullDetailsAPI = params =>
   getRequest(API_URL.GET_PROPERTIES_FULL_DETAILS, {
     data: { ...staticParams(params), active: true },
@@ -59,6 +65,18 @@ export const getPropertiesByUserAPI = params =>
 
 export const getAgentInfoAPI = params =>
   getRequest(API_URL.GET_AGENT_INFO, {
+    data: { ...staticParams(params), active: true },
+    config: { useBaseURL: true, isGuest: true }
+  })
+
+export const getHotelBookingCalendarAPI = params =>
+  getRequest(API_URL.GET_HOTEL_BOOKING_CALENDAR, {
+    data: { ...staticParams(params), active: true },
+    config: { useBaseURL: true, isGuest: true }
+  })
+
+export const getRentalBookingCalendarAPI = params =>
+  getRequest(API_URL.GET_RENTAL_BOOKING_CALENDAR, {
     data: { ...staticParams(params), active: true },
     config: { useBaseURL: true, isGuest: true }
   })
@@ -85,8 +103,8 @@ export const CreateValuation = params =>
 
 export const createBookingAPI = data =>
   postRequest(API_URL.CREATE_BOOKING, {
-    data,
-    config: { toast: false, isGuest: false }
+    data: { ...updateParams(data) },
+    config: { toast: false }
   })
 
 export const getBookingAPI = params =>
@@ -103,12 +121,12 @@ export const getBookingStatusAPI = params =>
 
 export const cancelBookingAPI = data =>
   postRequest(API_URL.CANCEL_BOOKING, {
-    data,
+    data: { ...updateParams(data) },
     config: { toast: true, isGuest: false }
   })
 
 export const updateBookingStatusAPI = data =>
   postRequest(API_URL.UPDATE_BOOKING, {
-    data,
+    data: { ...updateParams(data) },
     config: { toast: true, isGuest: false }
   })

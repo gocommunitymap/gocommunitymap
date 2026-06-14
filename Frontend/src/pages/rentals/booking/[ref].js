@@ -1,0 +1,417 @@
+import { Box, Button, Card, Chip, Divider, Grid, Skeleton, Stack, Typography } from '@mui/material'
+import { Icon } from '@iconify/react'
+import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react'
+import SeoHead from 'src/components/SeoHead'
+import { getBookingAPI } from 'src/configs/services/api-methods/guest'
+import { dateConvert, defaultPageFont } from 'src/@core/utils'
+import BlankLayout from 'src/@core/layouts/BlankLayout'
+import themeConfig from 'src/configs/themeConfig'
+
+const RentalBookingDetail = () => {
+  const router = useRouter()
+  const { ref } = router.query
+
+  const [booking, setBooking] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!ref) return
+
+    setLoading(true)
+    getBookingAPI({ BOOKING_NO: ref })
+      .then(res => {
+        const record = res?.data?.[0] || null
+        if (record) {
+          setBooking(record)
+          setError('')
+        } else {
+          setError('Booking not found')
+        }
+      })
+      .catch(() => {
+        setError('Booking not found')
+      })
+      .finally(() => setLoading(false))
+  }, [ref])
+
+  const statusColor = status => {
+    if (!status) return { bg: '#f5f5f5', text: '#666' }
+    const s = status.toUpperCase()
+    if (s === 'CONFIRMED') return { bg: '#e8f8ef', text: '#27ae60' }
+    if (s === 'CANCELLED') return { bg: '#fdecea', text: '#e53935' }
+    if (s === 'PENDING') return { bg: '#fff8e1', text: '#f59e0b' }
+
+    return { bg: '#f5f5f5', text: '#555' }
+  }
+
+  return (
+    <>
+      <SeoHead
+        title={
+          booking
+            ? `Booking #${booking.CODE || ref} – ${themeConfig.templateName}`
+            : `Booking Details – ${themeConfig.templateName}`
+        }
+        description='View your rental booking details.'
+      />
+
+      <Box>
+        <Box
+          sx={{
+            backgroundColor: '#fff',
+            borderBottom: '1px solid #f0f0f0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            px: { xs: 2, md: 4 },
+            py: 1.8,
+            position: 'sticky',
+            top: 0,
+            zIndex: 100
+          }}
+        >
+          <Box sx={{ width: '100%', mx: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button
+              size='small'
+              startIcon={<Icon icon='tabler:arrow-left' />}
+              onClick={() => router.back()}
+              sx={{ color: '#555', fontFamily: defaultPageFont, textTransform: 'none' }}
+            >
+              Back
+            </Button>
+            <Typography variant='subtitle2' fontWeight={700} fontFamily={defaultPageFont}>
+              Booking Details
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, md: 4 }, pt: 4 }}>
+          {loading && (
+            <Card sx={{ p: 3, borderRadius: 3 }}>
+              <Skeleton variant='rectangular' height={28} width='40%' sx={{ mb: 2 }} />
+              <Skeleton variant='rectangular' height={20} width='60%' sx={{ mb: 1 }} />
+              <Skeleton variant='rectangular' height={20} width='50%' sx={{ mb: 3 }} />
+              <Grid container spacing={2}>
+                {[...Array(6)].map((_, i) => (
+                  <Grid item xs={6} md={4} key={i}>
+                    <Skeleton variant='rectangular' height={56} />
+                  </Grid>
+                ))}
+              </Grid>
+            </Card>
+          )}
+
+          {!loading && error && (
+            <Card sx={{ p: 4, borderRadius: 3, textAlign: 'center' }}>
+              <Icon icon='tabler:file-search' style={{ fontSize: 56, color: '#ccc' }} />
+              <Typography variant='h6' fontWeight={700} fontFamily={defaultPageFont} sx={{ mt: 2, mb: 1 }}>
+                Booking not found
+              </Typography>
+              <Typography variant='body2' color='text.secondary' fontFamily={defaultPageFont} sx={{ mb: 3 }}>
+                {error}
+              </Typography>
+              <Button
+                variant='contained'
+                onClick={() => router.push('/account/bookings')}
+                sx={{ backgroundColor: '#27ae60', '&:hover': { backgroundColor: '#229954' } }}
+              >
+                View My Bookings
+              </Button>
+            </Card>
+          )}
+
+          {!loading && booking && (
+            <>
+              <Card sx={{ borderRadius: 3, overflow: 'hidden', mb: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.07)' }}>
+                <Box
+                  sx={{
+                    background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
+                    px: 3,
+                    py: 2.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 1
+                  }}
+                >
+                  <Stack direction='row' spacing={1.5} alignItems='center'>
+                    <Icon icon='tabler:home' style={{ fontSize: 24, color: '#fff' }} />
+                    <Box>
+                      <Typography variant='h6' fontWeight={800} color='#fff' fontFamily={defaultPageFont}>
+                        {booking.PROPERTY_NAME || 'Rental Booking'}
+                      </Typography>
+                      {booking.PLACE && (
+                        <Stack direction='row' spacing={0.5} alignItems='center'>
+                          <Icon icon='tabler:map-pin' style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }} />
+                          <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.85)' }}>
+                            {booking.PLACE}
+                          </Typography>
+                        </Stack>
+                      )}
+                    </Box>
+                  </Stack>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Chip
+                      label={(booking.STATUS || 'CONFIRMED').toUpperCase()}
+                      size='small'
+                      sx={{
+                        backgroundColor: '#fff',
+                        color: statusColor(booking.STATUS).text,
+                        fontWeight: 800,
+                        fontSize: '0.7rem',
+                        letterSpacing: 1,
+                        mb: 0.5
+                      }}
+                    />
+                    <Typography variant='caption' sx={{ color: 'rgba(255,255,255,0.8)', display: 'block' }}>
+                      Ref: #{booking.CODE || ref}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ px: 3, py: 2.5 }}>
+                  <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid item xs={6}>
+                      <Stack direction='row' spacing={1.5} alignItems='flex-start'>
+                        <Box
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 2,
+                            backgroundColor: '#f0faf4',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          <Icon icon='tabler:plane-arrival' style={{ fontSize: 18, color: '#27ae60' }} />
+                        </Box>
+                        <Box>
+                          <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                            Check-in
+                          </Typography>
+                          <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
+                            {dateConvert(booking.CHECK_IN)}
+                          </Typography>
+                          <Typography variant='caption' color='text.secondary'>
+                            {booking?.CHECK_IN_TIMESLOT_DESC ? `From ${booking.CHECK_IN_TIMESLOT_DESC}` : 'From —'}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Stack direction='row' spacing={1.5} alignItems='flex-start'>
+                        <Box
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 2,
+                            backgroundColor: '#fef9f0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          <Icon icon='tabler:plane-departure' style={{ fontSize: 18, color: '#e67e22' }} />
+                        </Box>
+                        <Box>
+                          <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                            Check-out
+                          </Typography>
+                          <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
+                            {dateConvert(booking.CHECK_OUT)}
+                          </Typography>
+                          <Typography variant='caption' color='text.secondary'>
+                            {booking?.CHECK_OUT_TIMESLOT_DESC ? `By ${booking.CHECK_OUT_TIMESLOT_DESC}` : 'By —'}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Grid>
+                  </Grid>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                        Duration
+                      </Typography>
+                      <Typography variant='body2' fontWeight={600} fontFamily={defaultPageFont}>
+                        {booking.NIGHTS} night{Number(booking.NIGHTS) !== 1 ? 's' : ''}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Card>
+
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={7}>
+                  <Card sx={{ p: 3, borderRadius: 3 }}>
+                    <Typography variant='subtitle2' fontWeight={700} fontFamily={defaultPageFont} sx={{ mb: 2.5 }}>
+                      Payment Details
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      <Stack direction='row' justifyContent='space-between'>
+                        <Typography variant='body2' color='text.secondary' fontFamily={defaultPageFont}>
+                          Subtotal
+                        </Typography>
+                        <Typography variant='body2' fontWeight={600} fontFamily={defaultPageFont}>
+                          $ {Number(booking.SUBTOTAL || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </Typography>
+                      </Stack>
+                      <Stack direction='row' justifyContent='space-between'>
+                        <Typography variant='body2' color='text.secondary' fontFamily={defaultPageFont}>
+                          Taxes & fees
+                        </Typography>
+                        <Typography variant='body2' fontWeight={600} fontFamily={defaultPageFont}>
+                          $ {Number(booking.SERVICE_FEE || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </Typography>
+                      </Stack>
+                      <Divider />
+                      <Stack direction='row' justifyContent='space-between' alignItems='center'>
+                        <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
+                          Total paid
+                        </Typography>
+                        <Typography variant='h6' fontWeight={800} color='#27ae60' fontFamily={defaultPageFont}>
+                          $ {Number(booking.TOTAL || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </Typography>
+                      </Stack>
+                      {booking.PAYMENT_METHOD && (
+                        <Stack direction='row' spacing={1} alignItems='center' sx={{ mt: 0.5 }}>
+                          <Icon icon='tabler:credit-card' style={{ fontSize: 16, color: '#888' }} />
+                          <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                            Paid via {booking.PAYMENT_METHOD}
+                          </Typography>
+                        </Stack>
+                      )}
+                    </Stack>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} md={5}>
+                  <Card sx={{ p: 3, borderRadius: 3, mb: 3, border: '2px solid #e8f8ef' }}>
+                    <Stack direction='row' spacing={1.5} alignItems='center' sx={{ mb: 2 }}>
+                      <Icon icon='tabler:ticket' style={{ fontSize: 22, color: '#27ae60' }} />
+                      <Typography variant='subtitle2' fontWeight={700} fontFamily={defaultPageFont}>
+                        Booking Reference
+                      </Typography>
+                    </Stack>
+                    <Box sx={{ backgroundColor: '#f0faf4', borderRadius: 2, p: 2, textAlign: 'center', mb: 2 }}>
+                      <Typography
+                        variant='h5'
+                        fontWeight={800}
+                        fontFamily={defaultPageFont}
+                        sx={{ color: '#27ae60', letterSpacing: 2 }}
+                      >
+                        #{booking.CODE || ref}
+                      </Typography>
+                    </Box>
+                    <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                      Keep this reference handy - you&apos;ll need it to manage your booking or contact support.
+                    </Typography>
+                  </Card>
+
+                  <Card sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+                    <Typography variant='subtitle2' fontWeight={700} fontFamily={defaultPageFont} sx={{ mb: 1.5 }}>
+                      Cancellation Policy
+                    </Typography>
+                    <Stack direction='row' justifyContent='space-between' alignItems='center'>
+                      <Box>
+                        <Typography
+                          variant='body2'
+                          sx={{ color: '#27ae60', fontWeight: 600, fontFamily: defaultPageFont }}
+                        >
+                          Free cancellation
+                        </Typography>
+                        <Typography variant='caption' color='text.secondary' fontFamily={defaultPageFont}>
+                          Until 48 hours before check-in
+                        </Typography>
+                      </Box>
+                      <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
+                        $ 0
+                      </Typography>
+                    </Stack>
+                  </Card>
+
+                  <Card sx={{ p: 3, borderRadius: 3 }}>
+                    <Stack direction='row' spacing={1.5} alignItems='flex-start'>
+                      <Icon icon='tabler:headset' style={{ fontSize: 20, color: '#555', marginTop: 2 }} />
+                      <Box>
+                        <Typography variant='body2' fontWeight={700} fontFamily={defaultPageFont}>
+                          Need help?
+                        </Typography>
+                        <Typography variant='caption' sx={{ color: '#27ae60', cursor: 'pointer' }}>
+                          Contact Support
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent='center' sx={{ mt: 4 }}>
+                <Button
+                  variant='contained'
+                  size='large'
+                  startIcon={<Icon icon='tabler:file-invoice' />}
+                  onClick={() => router.push(`/rentals/booking/invoice/${booking.BOOKING_NO || ref}`)}
+                  sx={{
+                    backgroundColor: '#27ae60',
+                    '&:hover': { backgroundColor: '#229954' },
+                    fontFamily: defaultPageFont,
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    px: 4
+                  }}
+                >
+                  View Invoice
+                </Button>
+
+                <Button
+                  variant='outlined'
+                  size='large'
+                  startIcon={<Icon icon='tabler:calendar-event' />}
+                  onClick={() => router.push('/account/bookings')}
+                  sx={{
+                    borderColor: '#27ae60',
+                    color: '#27ae60',
+                    '&:hover': { borderColor: '#229954', backgroundColor: '#f0faf4' },
+                    fontFamily: defaultPageFont,
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    px: 4
+                  }}
+                >
+                  My Bookings
+                </Button>
+
+                <Button
+                  variant='outlined'
+                  size='large'
+                  startIcon={<Icon icon='tabler:home' />}
+                  onClick={() => router.push('/rentals')}
+                  sx={{
+                    borderColor: '#ddd',
+                    color: '#555',
+                    '&:hover': { borderColor: '#bbb', backgroundColor: '#f9f9f9' },
+                    fontFamily: defaultPageFont,
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    px: 4
+                  }}
+                >
+                  Find More Rentals
+                </Button>
+              </Stack>
+            </>
+          )}
+        </Box>
+      </Box>
+    </>
+  )
+}
+
+RentalBookingDetail.getLayout = page => <BlankLayout>{page}</BlankLayout>
+
+export default RentalBookingDetail

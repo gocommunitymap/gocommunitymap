@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import IconifyIcon from 'src/@core/components/icon'
-import { amountWithComma } from 'src/@core/utils'
+import { amountWithComma, jsonToQueryString } from 'src/@core/utils'
 import { postSavedLinksAPI } from 'src/configs'
 import { useAuth } from 'src/hooks/useAuth'
 import { MapModal, StarRating } from 'src/views/components'
@@ -20,7 +20,7 @@ const skeletonSx = {
   }
 }
 
-const StayCard = ({ item }) => {
+const StayCard = ({ item, queryParams }) => {
   const { asPath } = useRouter()
   const { user } = useAuth()
   const [isSaved, setIsSaved] = useState(Boolean(item?.isSaved))
@@ -169,8 +169,29 @@ const StayCard = ({ item }) => {
           )}
         </Stack>
 
+        {item.listingType == 2 && (
+          <Stack
+            direction='row'
+            justifyContent='space-between'
+            sx={{ borderRadius: 1, p: 2, bgcolor: 'info.light' }}
+            alignItems='center'
+            mt={2}
+          >
+            <Typography sx={{ color: '#0b1730', fontFamily: defaultPageFont, fontWeight: 800, fontSize: '0.7rem' }}>
+              Rental Frequency:
+            </Typography>
+            <Typography sx={{ color: '#0b1730', fontFamily: defaultPageFont, fontWeight: 800, fontSize: '0.7rem' }}>
+              ${amountWithComma(item.rentalPrice)}
+              <Typography component='span' sx={{ ml: 1, color: 'secondary.dark', fontWeight: 700, fontSize: '0.7rem' }}>
+                {item.rentalFrequency}
+              </Typography>
+            </Typography>
+          </Stack>
+        )}
+
         <Stack direction='row' justifyContent='space-between' alignItems='center' mt={2}>
-          <StarRating value={item.rating} />
+          <StarRating value={item.rating} showValue={false} />
+
           <Typography sx={{ color: '#0b1730', fontFamily: defaultPageFont, fontWeight: 800, fontSize: '1rem' }}>
             ${amountWithComma(item.price)}
             <Typography component='span' sx={{ ml: 0.5, color: '#8d9bb1', fontWeight: 700, fontSize: '0.7rem' }}>
@@ -183,7 +204,7 @@ const StayCard = ({ item }) => {
             variant='contained'
             fullWidth
             component={item?.detailPath ? Link : 'button'}
-            href={item?.detailPath || undefined}
+            href={`${item?.detailPath}${queryParams}` || undefined}
             disabled={!item?.detailPath}
             sx={{
               position: 'absolute',
@@ -209,10 +230,11 @@ const LandingPropertySections = ({
   isLoading = false,
   hasMore = false,
   isFetchingMore = false,
-  onLoadMore
+  onLoadMore,
+  hotelsSearchParams
 }) => {
   const loadMoreRef = useRef(null)
-
+  const queryParams = jsonToQueryString(hotelsSearchParams)
   useEffect(() => {
     if (!onLoadMore || !hasMore || isLoading || isFetchingMore) return
     const target = loadMoreRef.current
@@ -303,13 +325,13 @@ const LandingPropertySections = ({
                 </Typography>
               </Box>
               <Typography sx={{ color: '#11B981', fontWeight: 800, fontFamily: defaultPageFont, fontSize: '1rem' }}>
-                Showing {section.cards.length} result(s)
+                Showing {section.cards[0]?.dataLength || 0} result(s)
               </Typography>
             </Stack>
             <Grid container spacing={2.5}>
               {section.cards.map(item => (
                 <Grid item xs={12} md={6} key={item.id}>
-                  <StayCard item={item} />
+                  <StayCard item={item} queryParams={queryParams} />
                 </Grid>
               ))}
             </Grid>

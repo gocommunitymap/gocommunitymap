@@ -60,4 +60,3 @@ const CustomRadioImg = props => {
 }
 
 export default CustomRadioImg
-

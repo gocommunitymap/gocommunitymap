@@ -57,4 +57,3 @@ const CustomCheckboxImg = props => {
 }
 
 export default CustomCheckboxImg
-
