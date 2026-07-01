@@ -61,6 +61,7 @@ namespace PresentationLayer.Controllers
             }
         }
         [HttpPost]
+        [Authorize]
         public IActionResult UpdateCustomFeatures(CustomFeatures customFeatures)
         {
 
