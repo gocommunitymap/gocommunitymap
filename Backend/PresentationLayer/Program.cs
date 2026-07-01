@@ -133,10 +133,10 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseCors("cors_policy");
+app.UseAuthentication();
 app.UseMiddleware<JwtUserMiddleware>();
 app.UseAuthorization();
-app.UseCors("cors_policy");
 app.MapControllers();
-
 
 app.Run();
