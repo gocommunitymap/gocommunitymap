@@ -84,6 +84,7 @@ namespace PresentationLayer.Controllers
             }
         }
         [HttpPost]
+        [Authorize]
         public IActionResult UpdateGlobalParameters(GlobalParameters globalParameters)
         {
 

@@ -90,7 +90,7 @@ namespace PresentationLayer.Controllers
 
 
         [HttpDelete]
-        //[Authorize]
+        [Authorize]
         public IActionResult DeleteNavbar([Required] int NAV_ID, [Required] int USER)
         {
             Navbar navbar = new Navbar();

@@ -9,6 +9,23 @@ export const axios = base_axios.create({
   baseURL: `${process.env.NEXT_PUBLIC_BASEURL}`
 })
 
+// Handle platform-wide HTTP status codes once, before individual request handlers.
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    const status = error.response?.status
+    if (status === 429) {
+      const retryAfter = Number(error.response.headers['retry-after']) || 60
+      toast.error(`Too many requests — please wait ${retryAfter} seconds and try again.`, toastProps)
+      error._intercepted = true
+    } else if (status === 410) {
+      toast.error('This listing has been removed.', toastProps)
+      error._intercepted = true
+    }
+    return Promise.reject(error)
+  }
+)
+
 export const getRequest = async (
   url,
   { data = {}, config = { useBaseURL: true, isGuest: false, errorMessage: null, errorToast: true } } = {}
@@ -41,6 +58,7 @@ export const getRequest = async (
         }
       })
       .catch(error => {
+        if (error._intercepted) return false
         if (config.errorToast) {
           if (config.errorMessage !== null) {
             toast.error(config.errorMessage)
@@ -115,6 +133,7 @@ export const postRequest = (
       return response
     })
     .catch(error => {
+      if (error._intercepted) return false
       alert('12')
       toast.error(error.message, toastProps)
 
@@ -151,6 +170,7 @@ export const deleteRequest = (url, { data = {}, config = { toast: true } } = {})
       return response
     })
     .catch(error => {
+      if (error._intercepted) return false
       if (config.toast) {
         toast.error(error.message, toastProps)
       }

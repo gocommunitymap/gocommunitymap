@@ -1,14 +1,18 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Models;
 using BusinessLogicLayer.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Org.BouncyCastle.Asn1.Crmf;
 
 namespace PresentationLayer.Controllers
 {
     [Route("[controller]/[action]")]
     [ApiController]
+    [Authorize]
+    [EnableRateLimiting("external")]
     public class ChatGPTController : ControllerBase
     {
         private readonly IChatGPTRepository _chatGptService;

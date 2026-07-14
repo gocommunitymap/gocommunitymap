@@ -3,6 +3,7 @@ using BusinessLogicLayer.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 
 namespace PresentationLayer.Controllers
@@ -62,7 +63,30 @@ namespace PresentationLayer.Controllers
             }
         }
         [HttpPost]
-        
+        [EnableRateLimiting("auth")]
+        public IActionResult RegisterUser(SetUsers users)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest("Invalid Data!");
+
+                // USER_TYPE 4 = public registrant — enforced at API level, not accepted from client.
+                users.USER_TYPE = 4;
+
+                var result = _setUser.CreateUsers(users);
+                if (result == null)
+                    return BadRequest("Request Failed!");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Authorize]
         public IActionResult CreateUsers(SetUsers users)
         {
             try

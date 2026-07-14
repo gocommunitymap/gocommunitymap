@@ -3,7 +3,9 @@ using BusinessLogicLayer.Models;
 using BusinessLogicLayer.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace PresentationLayer.Controllers
 {
@@ -29,6 +31,18 @@ namespace PresentationLayer.Controllers
 
                 if (result == null)
                     return BadRequest("Request Faild!");
+
+                if (setProperties.PROPERTY_ID.HasValue)
+                {
+                    var rows = ((IEnumerable<dynamic>)result).Cast<IDictionary<string, object>>().ToList();
+
+                    if (rows.Count == 0)
+                        return NotFound();
+
+                    if (rows[0].TryGetValue("DELETED_ON", out var deletedOn) && deletedOn != null)
+                        return StatusCode(410);
+                }
+
                 return Ok(result);
             }
             catch (Exception ex)
@@ -37,7 +51,7 @@ namespace PresentationLayer.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-        
+
         [HttpGet]
         [Authorize]
         public IActionResult GetPropertySetupList(int LISTING_TYPE_ID, int PAGE_NUMBER, int PAGE_SIZE)

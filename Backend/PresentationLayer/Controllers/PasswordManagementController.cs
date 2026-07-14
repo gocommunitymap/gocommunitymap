@@ -1,11 +1,13 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 
 namespace PresentationLayer.Controllers
 {
     [ApiController]
+    [EnableRateLimiting("auth")]
     public class PasswordManagementController : ControllerBase
     {
         private readonly IPasswordManagementRepository _passwordManagementRepository;

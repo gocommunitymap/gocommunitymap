@@ -2,12 +2,14 @@
 using BusinessLogicLayer.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Org.BouncyCastle.Asn1.Pkcs;
 using System.ComponentModel.DataAnnotations;
 
 namespace PresentationLayer.Controllers
 {
     [ApiController]
+    [EnableRateLimiting("external")]
     public class MailController : ControllerBase
     {
         private readonly IMailRepository _mailService;
@@ -17,12 +19,6 @@ namespace PresentationLayer.Controllers
             _mailService = _MailService;
         }
 
-        [HttpPost]
-        [Route("SendMail")]
-        public bool SendMail(MailData mailData)
-        {
-            return _mailService.SendMail(mailData);
-        }
         [HttpPost]
         [Route("SendMail2")]
         public async Task SendEmail2(MailRequest mailRequest)

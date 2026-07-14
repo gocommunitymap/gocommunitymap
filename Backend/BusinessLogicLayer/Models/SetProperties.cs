@@ -83,5 +83,6 @@ namespace BusinessLogicLayer.Models
         public string[]? POPULAR_COUNTRIES { get; set; }
 
         public bool? ACTIVE { get; set; }
+        public DateTime? DELETED_ON { get; set; }
     }
 }

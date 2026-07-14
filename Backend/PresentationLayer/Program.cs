@@ -11,6 +11,8 @@ using PresentationLayer.Controllers;
 using BusinessLogicLayer.Services;
 using PresentationLayer.Middleware;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,6 +76,49 @@ builder.Services.AddCors(options =>
                       });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
+        await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken);
+    };
+
+    // Global limit: per client IP, applies to every endpoint.
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Strict limit for credential/token endpoints (login brute-force protection).
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Moderate limit for endpoints that trigger paid/external services (mail, OpenAI, Stripe).
+    options.AddPolicy("external", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]);
 builder.Services.AddControllers();
 builder.Services.AddAuthentication(x =>
@@ -134,6 +179,7 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseCors("cors_policy");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<JwtUserMiddleware>();
 app.UseAuthorization();

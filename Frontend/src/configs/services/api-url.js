@@ -48,6 +48,7 @@ export const API_URL = Object.freeze({
   DELETE_ROLE: '/Role/DeleteRole',
   GET_USER: '/SetUsers/GetUsers',
   GET_AGENT_USER: '/SetUsers/GetAgentUsers',
+  REGISTER_USER: '/SetUsers/RegisterUser',
   CREATE_USER: '/SetUsers/CreateUsers',
   UPDATE_USER: '/SetUsers/UpdateUsers',
   DELETE_USER: '/SetUsers/DeleteUsers',

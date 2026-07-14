@@ -181,7 +181,6 @@ const RentalBookingDetails = () => {
             PASSWORD: form.password,
             CONTACT_NO: form.phone,
             STATUS: 1,
-            USER_TYPE: 4,
             USER: 0
           },
           config: { toast: false, isGuest: true, returnErrorResponse: true }

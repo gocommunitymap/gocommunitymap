@@ -13,7 +13,7 @@ export const getAgentUserAPI = params => getRequest(API_URL.GET_AGENT_USER, { da
 export const createUserAPI = params => postRequest(API_URL.CREATE_USER, { data: updateParams(params) })
 
 export const registerUserAPI = ({ data, config }) =>
-  postRequest(API_URL.CREATE_USER, {
+  postRequest(API_URL.REGISTER_USER, {
     data,
     config
   })

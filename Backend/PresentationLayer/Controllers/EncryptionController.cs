@@ -1,5 +1,6 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace PresentationLayer.Controllers
 {
     [Route("[controller]/[action]")]
     [ApiController]
+    [Authorize]
     public class EncryptionController : ControllerBase
     {
         private readonly IEncryptionRepository _encryption;
@@ -19,7 +21,6 @@ namespace PresentationLayer.Controllers
         }
 
         [HttpPost]
-        //[Authorize]
         public IActionResult Encryption(string Text, string Key)
         {
 

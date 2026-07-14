@@ -1,13 +1,16 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Stripe;
 
 namespace PresentationLayer.Controllers
 {
     [Route("[controller]/[action]")]
     [ApiController]
+    [EnableRateLimiting("external")]
     public class PaymentController : ControllerBase
     {
         private readonly IConfiguration _config;
@@ -20,6 +23,7 @@ namespace PresentationLayer.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreatePayment(PaymentRequestDto request)
         {
             var result = await _service.CreatePaymentIntentAsync(request);

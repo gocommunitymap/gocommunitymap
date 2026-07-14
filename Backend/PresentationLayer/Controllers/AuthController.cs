@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using BusinessLogicLayer;
 using BusinessLogicLayer.Models;
 using BusinessLogicLayer.Interfaces;
@@ -14,6 +15,7 @@ namespace PresentationLayer.Controllers
 {
     [ApiController]
     [Route("auth/[action]")]
+    [EnableRateLimiting("auth")]
     //[EnableCors("cors_policy")]
     public class AuthController : ControllerBase
     {
@@ -119,6 +121,7 @@ namespace PresentationLayer.Controllers
             return Ok(result);
         }
         [HttpPost]
+        [Authorize]
         public object TokenRevoke(Refresh_Token data)
         {
 
